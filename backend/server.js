@@ -8,8 +8,17 @@ import { connectDB } from './config/db.js'
 import { errorHandler, notFound } from './middleware/errorMiddleware.js'
 import authRoutes from './routes/authRoutes.js'
 import healthRoutes from './routes/healthRoutes.js'
+import issueRoutes from './routes/issueRoutes.js'
+import projectRoutes from './routes/projectRoutes.js'
+import taskRoutes from './routes/taskRoutes.js'
+import userRoutes from './routes/userRoutes.js'
 
+import { fileURLToPath } from 'url'
+import path from 'path'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config()
+dotenv.config({ path: path.join(__dirname, '.env') })
 
 const app = express()
 const port = process.env.PORT || 5000
@@ -27,6 +36,10 @@ app.use(morgan('dev'))
 
 app.use('/api/health', healthRoutes)
 app.use('/api/auth', authRoutes)
+app.use('/api/projects', projectRoutes)
+app.use('/api/tasks', taskRoutes)
+app.use('/api/issues', issueRoutes)
+app.use('/api/users', userRoutes)
 app.use(notFound)
 app.use(errorHandler)
 

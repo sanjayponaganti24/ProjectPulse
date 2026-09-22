@@ -4,3 +4,5 @@ dist/
 .env.*
 !.env.example
 backend/.env
+frontend/.env
+frontend/ node_modules/
