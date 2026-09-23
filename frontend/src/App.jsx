@@ -1,134 +1,49 @@
-import { forwardRef, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowRight,
-  Bell,
   CalendarDays,
   Check,
   CheckCircle2,
   ChevronDown,
   CircleAlert,
-  ClipboardList,
   FolderKanban,
-  LayoutDashboard,
-  LogOut,
-  Menu,
   MoreHorizontal,
   Plus,
   Search,
-  Settings,
-  ShieldCheck,
   Target,
   Users,
   X,
   XCircle,
 } from 'lucide-react'
-import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
+import AppShell from './components/AppShell.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  PageHeader,
+  ProgressBar,
+} from './components/UI.jsx'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core'
 import { useAuth } from './context/AuthContext.jsx'
 import api from './services/api.js'
 
-const projects = [
-  { id: 'atlas', name: 'Atlas Mobile App', description: 'A focused mobile experience for customer teams.', status: 'IN_PROGRESS', progress: 68, deadline: 'Oct 18, 2026', manager: 'Sanjay P.', members: 8, tasks: 24, issues: 3 },
-  { id: 'website', name: 'Marketing Website', description: 'A sharper web presence for the next product launch.', status: 'COMPLETED', progress: 100, deadline: 'Sep 30, 2026', manager: 'Maya Chen', members: 5, tasks: 18, issues: 1 },
-  { id: 'ops', name: 'Operations Hub', description: 'Bring internal processes into one calm workspace.', status: 'PLANNED', progress: 12, deadline: 'Nov 12, 2026', manager: 'Alex Morgan', members: 4, tasks: 11, issues: 0 },
-]
-
-const tasks = [
-  { id: 't1', title: 'Finalize onboarding flow', project: 'Atlas Mobile App', assignee: 'Sanjay P.', priority: 'HIGH', status: 'IN_PROGRESS', due: 'Sep 22' },
-  { id: 't2', title: 'Review analytics events', project: 'Atlas Mobile App', assignee: 'Maya Chen', priority: 'MEDIUM', status: 'TODO', due: 'Sep 25' },
-  { id: 't3', title: 'Publish launch checklist', project: 'Marketing Website', assignee: 'Alex Morgan', priority: 'LOW', status: 'COMPLETED', due: 'Sep 18' },
-  { id: 't4', title: 'QA responsive layouts', project: 'Marketing Website', assignee: 'Priya Shah', priority: 'HIGH', status: 'IN_PROGRESS', due: 'Sep 20' },
-  { id: 't5', title: 'Map operations workflows', project: 'Operations Hub', assignee: 'Sanjay P.', priority: 'MEDIUM', status: 'TODO', due: 'Oct 02' },
-  { id: 't6', title: 'Create support playbook', project: 'Operations Hub', assignee: 'Maya Chen', priority: 'LOW', status: 'COMPLETED', due: 'Sep 17' },
-]
-
-const issues = [
-  { id: 'i1', title: 'Push notification delay', project: 'Atlas Mobile App', severity: 'HIGH', status: 'OPEN', reporter: 'Maya Chen', assignee: 'Sanjay P.', created: 'Sep 16, 2026' },
-  { id: 'i2', title: 'Tablet navigation spacing', project: 'Marketing Website', severity: 'MEDIUM', status: 'IN_PROGRESS', reporter: 'Priya Shah', assignee: 'Alex Morgan', created: 'Sep 14, 2026' },
-  { id: 'i3', title: 'Missing empty state copy', project: 'Operations Hub', severity: 'LOW', status: 'RESOLVED', reporter: 'Sanjay P.', assignee: 'Maya Chen', created: 'Sep 12, 2026' },
-]
-
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/projects', label: 'Projects', icon: FolderKanban },
-  { to: '/tasks', label: 'Tasks', icon: ClipboardList },
-  { to: '/kanban', label: 'Kanban', icon: Target },
-  { to: '/team', label: 'Team', icon: Users },
-  { to: '/issues', label: 'Issues', icon: CircleAlert },
-  { to: '/reports', label: 'Reports', icon: Activity },
-]
-
-function Button({ children, variant = 'primary', icon: Icon, ...props }) {
-  return <button className={`button button-${variant}`} {...props}>{Icon && <Icon size={16} />}{children}</button>
-}
-
-function Badge({ children, tone = 'neutral' }) {
-  return <span className={`badge badge-${tone.toLowerCase().replace('_', '-')}`}>{children}</span>
-}
-
-const Card = forwardRef(function Card({ children, className = '', ...props }, ref) {
-  return <section ref={ref} className={`card ${className}`} {...props}>{children}</section>
-})
-
-function Avatar({ name = 'User', size = 'md' }) {
-  const initials = name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase()
-  return <span className={`avatar avatar-${size}`}>{initials}</span>
-}
-
-function ProgressBar({ value }) {
-  return <div className="progress-track"><span style={{ width: `${value}%` }} /></div>
-}
-
-function PageHeader({ eyebrow, title, description, action }) {
-  return <div className="page-header"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1>{description && <p>{description}</p>}</div>{action}</div>
-}
-
-function EmptyState({ title, description, action }) {
-  return <div className="empty-state"><div className="empty-icon"><FolderKanban size={22} /></div><h3>{title}</h3><p>{description}</p>{action}</div>
-}
-
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth()
-  if (loading) return <div className="loading-screen"><div className="spinner" />Loading your workspace...</div>
-  return user ? children : <Navigate to="/login" replace />
-}
-
-function AppShell({ children }) {
-  const { user, logout } = useAuth()
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const location = useLocation()
-  const navigate = useNavigate()
-  const title = location.pathname.split('/')[1] || 'dashboard'
-
-  async function handleLogout() {
-    await logout()
-    navigate('/login')
-  }
-
-  return <div className="app-shell">
-    <aside className={`sidebar ${mobileOpen ? 'sidebar-open' : ''}`}>
-      <div className="brand"><span className="brand-mark">P</span><span>Project<span className="brand-accent">Pulse</span></span><button className="mobile-close" onClick={() => setMobileOpen(false)}><X size={18} /></button></div>
-      <div className="workspace-switcher"><div className="workspace-mark">A</div><div><strong>Atlas workspace</strong><small>Personal workspace</small></div><ChevronDown size={15} /></div>
-      <nav className="sidebar-nav">{navItems.map(({ to, label, icon: Icon }) => <NavLink key={to} to={to} onClick={() => setMobileOpen(false)} className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}><Icon size={18} /><span>{label}</span></NavLink>)}</nav>
-      <div className="sidebar-secondary"><NavLink to="/search" className="nav-link"><Search size={18} /><span>Search</span></NavLink><NavLink to="/profile" className="nav-link"><Settings size={18} /><span>Settings</span></NavLink></div>
-      <div className="sidebar-user"><Avatar name={user?.name || 'User'} /><div><strong>{user?.name || 'Workspace user'}</strong><small>{user?.role === 'PROJECT_MANAGER' ? 'Project manager' : 'Member'}</small></div><button onClick={handleLogout} title="Log out"><LogOut size={16} /></button></div>
-    </aside>
-    {mobileOpen && <button className="mobile-overlay" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />}
-    <div className="main-shell">
-      <header className="topbar"><button className="mobile-menu" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><div className="topbar-context"><span>Workspace</span><strong>{title.charAt(0).toUpperCase() + title.slice(1)}</strong></div><div className="topbar-actions"><label className="global-search"><Search size={17} /><input placeholder="Search anything..." /><kbd>⌘ K</kbd></label><button className="icon-button" title="Notifications"><Bell size={19} /><i /></button><NavLink to="/profile" className="topbar-avatar"><Avatar name={user?.name || 'User'} /></NavLink></div></header>
-      <main className="content">{children}</main>
-    </div>
-  </div>
-}
-
 function ProtectedLayout() {
-  return <ProtectedRoute><AppShell><Outlet /></AppShell></ProtectedRoute>
+  return (
+    <ProtectedRoute>
+      <AppShell />
+    </ProtectedRoute>
+  )
 }
 
 function LandingPage() {
-  return <div className="landing"><header className="landing-nav"><Link to="/" className="brand"><span className="brand-mark">P</span><span>Project<span className="brand-accent">Pulse</span></span></Link><nav><Link to="/login">Sign in</Link><Link to="/register" className="button button-primary">Get started <ArrowRight size={15} /></Link></nav></header><main className="landing-hero"><div className="eyebrow">A calmer way to work together</div><h1>Make progress <span>visible.</span></h1><p>ProjectPulse brings projects, people, and priorities together so every team can plan with confidence and finish meaningful work.</p><div className="hero-actions"><Link to="/register" className="button button-primary">Start planning <ArrowRight size={16} /></Link><Link to="/login" className="button button-secondary">Sign in</Link></div><div className="preview-window"><div className="preview-bar"><span /><span /><span /><small>ProjectPulse / Dashboard</small></div><div className="preview-body"><div className="preview-sidebar"><b>ProjectPulse</b><span className="active">Overview</span><span>Projects</span><span>Tasks</span><span>Reports</span></div><div className="preview-content"><small>MONDAY, SEPTEMBER 17</small><h3>Good morning, team</h3><div className="preview-stats"><span /><span /><span /></div><div className="preview-panels"><span /><span /></div></div></div></div></main><section className="landing-features">{[['Projects', FolderKanban, 'Keep every initiative organized and moving.'], ['Tasks', ClipboardList, 'Turn goals into clear, accountable next steps.'], ['Team', Users, 'Give everyone context without the noise.'], ['Insights', Activity, 'See momentum and make better decisions.']].map(([name, Icon, text]) => <div key={name}><Icon size={20} /><h3>{name}</h3><p>{text}</p></div>)}</section></div>
+  return <div className="landing"><header className="landing-nav"><Link to="/" className="brand"><span className="brand-mark">P</span><span>Project<span className="brand-accent">Pulse</span></span></Link><nav><Link to="/login">Sign in</Link><Link to="/register" className="button button-primary">Get started <ArrowRight size={15} /></Link></nav></header><main className="landing-hero"><div className="eyebrow">Plan. Assign. Track. Complete.</div><h1>Make progress <span>visible.</span></h1><p>ProjectPulse brings projects, people, and priorities together so every team can plan with confidence and finish meaningful work.</p><div className="hero-actions"><Link to="/register" className="button button-primary">Start planning <ArrowRight size={16} /></Link><Link to="/login" className="button button-secondary">Sign in</Link></div><div className="preview-window"><div className="preview-bar"><span /><span /><span /><small>ProjectPulse workspace</small></div><div className="preview-body"><div className="preview-sidebar"><b>ProjectPulse</b><span className="active">Overview</span><span>Projects</span><span>Tasks</span><span>Reports</span></div><div className="preview-content"><small>WORKSPACE OVERVIEW</small><h3>Plan with clarity</h3><div className="preview-stats"><span /><span /><span /></div><div className="preview-panels"><span /><span /></div></div></div></div></main><section className="landing-features">{[['Projects', FolderKanban, 'Keep every initiative organized and moving.'], ['Tasks', ClipboardList, 'Turn goals into clear, accountable next steps.'], ['Team', Users, 'Give everyone context without the noise.'], ['Insights', Activity, 'See momentum and make better decisions.']].map(([name, Icon, text]) => <div key={name}><Icon size={20} /><h3>{name}</h3><p>{text}</p></div>)}</section></div>
 }
 
 function AuthPage({ mode }) {
@@ -155,10 +70,6 @@ function AuthPage({ mode }) {
   }
 
   return <div className="auth-page"><div className="auth-brand"><Link to="/" className="brand"><span className="brand-mark">P</span><span>Project<span className="brand-accent">Pulse</span></span></Link><div className="auth-message"><div className="eyebrow">Your work, in focus</div><h1>{isLogin ? 'Welcome back to your workspace.' : 'Build momentum with your team.'}</h1><p>Plan clearly, collaborate simply, and keep every deadline visible.</p><div className="auth-quote"><CheckCircle2 size={18} /><span>Everything your team needs to move forward.</span></div></div></div><div className="auth-panel"><div className="auth-card"><div className="auth-heading"><h2>{isLogin ? 'Sign in' : 'Create your account'}</h2><p>{isLogin ? 'Enter your details to continue.' : 'Start organizing your work in minutes.'}</p></div><form onSubmit={submit}>{!isLogin && <label>Full name<input name="name" value={form.name} onChange={update} placeholder="Your name" autoComplete="name" /></label>}<label>Email address<input name="email" type="email" value={form.email} onChange={update} placeholder="you@company.com" autoComplete="email" /></label><label>Password<input name="password" type="password" value={form.password} onChange={update} placeholder="At least 6 characters" autoComplete={isLogin ? 'current-password' : 'new-password'} /></label>{!isLogin && <><label>Confirm password<input name="confirmPassword" type="password" value={form.confirmPassword} onChange={update} placeholder="Repeat your password" autoComplete="new-password" /></label><label>Role<select name="role" value={form.role} onChange={update}><option value="MEMBER">Member</option><option value="PROJECT_MANAGER">Project manager</option></select></label></>}{error && <div className="form-error"><XCircle size={16} />{error}</div>}<Button type="submit" disabled={submitting}>{submitting ? 'Please wait...' : isLogin ? 'Sign in' : 'Create account'} <ArrowRight size={16} /></Button></form><p className="auth-switch">{isLogin ? "Don't have an account?" : 'Already have an account?'} <Link to={isLogin ? '/register' : '/login'}>{isLogin ? 'Create one' : 'Sign in'}</Link></p></div></div></div>
-}
-
-function Dashboard() {
-  return <><PageHeader eyebrow="Monday, September 17, 2026" title="Good morning, team" description="Here's what is happening across your projects today." action={<Button icon={Plus}>New project</Button>} /><div className="stat-grid">{[['Total projects', '12', '+2 this month', FolderKanban], ['Active projects', '7', '+1 this week', Activity], ['Completed', '24', '+8 this month', CheckCircle2], ['Open issues', '9', '3 high priority', CircleAlert]].map(([label, value, note, Icon], index) => <Card className="stat-card" key={label}><div className={`stat-icon stat-${index}`}><Icon size={18} /></div><span>{label}</span><strong>{value}</strong><small>{note}</small></Card>)}</div><div className="dashboard-grid"><Card><div className="section-heading"><div><h2>Project progress</h2><p>Recent momentum across active work.</p></div><Link to="/projects">View all <ArrowRight size={15} /></Link></div><div className="project-list">{projects.map((project) => <Link to={`/projects/${project.id}`} className="project-row" key={project.id}><div className="project-avatar">{project.name[0]}</div><div className="project-row-main"><strong>{project.name}</strong><div><ProgressBar value={project.progress} /><small>{project.progress}% complete</small></div></div><Badge tone={project.status}>{project.status.replace('_', ' ')}</Badge></Link>)}</div></Card><Card><div className="section-heading"><div><h2>Upcoming tasks</h2><p>What needs your attention next.</p></div><Link to="/tasks">View all <ArrowRight size={15} /></Link></div><div className="task-list">{tasks.slice(0, 4).map((task) => <div className="task-row" key={task.id}><span className={`task-check ${task.status === 'COMPLETED' ? 'done' : ''}`}>{task.status === 'COMPLETED' && <Check size={12} />}</span><div><strong>{task.title}</strong><small>{task.project} · Due {task.due}</small></div><Badge tone={task.priority}>{task.priority}</Badge></div>)}</div></Card></div><div className="dashboard-grid lower-grid"><Card><div className="section-heading"><div><h2>Task overview</h2><p>Current workload by status.</p></div></div><div className="chart-wrap"><ResponsiveContainer width="100%" height={220}><BarChart data={[{ name: 'To do', value: 18 }, { name: 'In progress', value: 12 }, { name: 'Completed', value: 34 }]}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8ebf0" /><XAxis dataKey="name" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} /><Tooltip cursor={{ fill: '#f6f8fb' }} /><Bar dataKey="value" fill="#5966d8" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div></Card><Card><div className="section-heading"><div><h2>Recent activity</h2><p>Latest updates from your team.</p></div></div><div className="activity-list">{['Maya completed “Launch checklist”', 'Sanjay moved “Onboarding flow” forward', 'Priya reported a new issue'].map((item, index) => <div className="activity-row" key={item}><Avatar name={['Maya Chen', 'Sanjay P.', 'Priya Shah'][index]} size="sm" /><div><strong>{item}</strong><small>{index + 1} hour{index ? 's' : ''} ago</small></div></div>)}</div></Card></div></>
 }
 
 function ProjectError({ message }) {
@@ -303,13 +214,17 @@ function KanbanPage() {
       setItems(previous)
       setError(requestError.response?.data?.message || 'Unable to update task status.')
     }
-    function onDragStart({ active }) {
-      setActiveTask(items.find((task) => task._id === active.id) || null)
-    }
-    function onDragEnd({ active, over }) {
-      setActiveTask(null)
-      const task = items.find((item) => item._id === active.id)
-      if (task && over && columns.some(([status]) => status === over.id) && task.status !== over.id) moveTask(task, over.id)
+  }
+
+  function onDragStart({ active }) {
+    setActiveTask(items.find((task) => task._id === active.id) || null)
+  }
+
+  function onDragEnd({ active, over }) {
+    setActiveTask(null)
+    const task = items.find((item) => item._id === active.id)
+    if (task && over && columns.some(([status]) => status === over.id) && task.status !== over.id) {
+      moveTask(task, over.id)
     }
   }
   if (loading) return <div className="loading-screen"><div className="spinner" />Loading board...</div>
@@ -381,13 +296,214 @@ function IssueDetailPage() {
 }
 
 function ReportsPage() {
-  const priorityData = [{ name: 'Low', value: 18, color: '#8bb7a4' }, { name: 'Medium', value: 32, color: '#d2a85b' }, { name: 'High', value: 14, color: '#d87979' }]
-  return <><PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} /><div className="stat-grid compact-stats">{[['Total tasks', '64'], ['Completed', '34'], ['In progress', '12'], ['Open issues', '9']].map(([label, value]) => <Card className="mini-stat" key={label}><span>{label}</span><strong>{value}</strong><small>Across all projects</small></Card>)}</div><div className="report-grid"><Card><div className="section-heading"><div><h2>Tasks by status</h2><p>Workload distribution</p></div></div><ResponsiveContainer width="100%" height={260}><BarChart data={[{ name: 'To do', value: 18 }, { name: 'In progress', value: 12 }, { name: 'Completed', value: 34 }]}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8ebf0" /><XAxis dataKey="name" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="value" fill="#5966d8" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></Card><Card><div className="section-heading"><div><h2>Tasks by priority</h2><p>Where attention is needed</p></div></div><div className="donut-chart"><ResponsiveContainer width="55%" height={220}><PieChart><Pie data={priorityData} dataKey="value" innerRadius={55} outerRadius={82} paddingAngle={4}>{priorityData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer><div className="legend">{priorityData.map((item) => <span key={item.name}><i style={{ background: item.color }} />{item.name}<strong>{item.value}</strong></span>)}</div></div></Card></div><Card><div className="section-heading"><div><h2>Project progress</h2><p>Completion across active projects</p></div></div><div className="report-projects">{projects.map((project) => <div key={project.id}><div><strong>{project.name}</strong><span>{project.progress}%</span></div><ProgressBar value={project.progress} /></div>)}</div></Card></>
+  const [reports, setReports] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function loadReports() {
+      setLoading(true)
+      setError('')
+      try {
+        const { data } = await api.get('/api/reports')
+        setReports(data.reports)
+      } catch (requestError) {
+        setError(requestError.response?.data?.message || 'Unable to load reports.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadReports()
+  }, [])
+
+  if (loading) {
+    return (
+      <>
+        <PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} />
+        <div className="loading-screen"><div className="spinner" />Loading reports...</div>
+      </>
+    )
+  }
+
+  if (error) {
+    return (
+      <>
+        <PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} />
+        <ProjectError message={error} />
+      </>
+    )
+  }
+
+  if (!reports) {
+    return (
+      <>
+        <PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} />
+        <Card><EmptyState title="No data available" description="Create projects, tasks, and issues to see insights here." /></Card>
+      </>
+    )
+  }
+
+  const { projects, tasks, issues, projectProgress } = reports
+
+  const taskStatusData = [
+    { name: 'To do', value: tasks.todo },
+    { name: 'In progress', value: tasks.inProgress },
+    { name: 'Completed', value: tasks.completed },
+  ]
+
+  return (
+    <>
+      <PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} />
+      <div className="stat-grid compact-stats">
+        {[['Total projects', projects.total], ['Active projects', projects.active], ['Completed projects', projects.completed], ['Total tasks', tasks.total], ['To do', tasks.todo], ['In progress', tasks.inProgress], ['Completed tasks', tasks.completed], ['Total issues', issues.total], ['Open issues', issues.open], ['Resolved issues', issues.resolved]].map(([label, value]) => (
+          <Card className="mini-stat" key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            <small>Across all projects</small>
+          </Card>
+        ))}
+      </div>
+      <div className="report-grid">
+        <Card>
+          <div className="section-heading">
+            <div>
+              <h2>Tasks by status</h2>
+              <p>Workload distribution</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={taskStatusData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8ebf0" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#5966d8" radius={[5, 5, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card>
+          <div className="section-heading">
+            <div>
+              <h2>Tasks by priority</h2>
+              <p>Where attention is needed</p>
+            </div>
+          </div>
+          <div className="donut-chart">
+            <ResponsiveContainer width="55%" height={220}>
+              <PieChart>
+                <Pie data={tasks.byPriority} dataKey="value" innerRadius={55} outerRadius={82} paddingAngle={4}>
+                  {tasks.byPriority.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="legend">
+              {tasks.byPriority.map((item) => (
+                <span key={item.name}>
+                  <i style={{ background: item.color }} />
+                  {item.name}
+                  <strong>{item.value}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+      <Card>
+        <div className="section-heading">
+          <div>
+            <h2>Issues by severity</h2>
+            <p>Issues requiring attention</p>
+          </div>
+        </div>
+        <div className="donut-chart">
+          <ResponsiveContainer width="55%" height={220}>
+            <PieChart>
+              <Pie data={issues.bySeverity} dataKey="value" innerRadius={55} outerRadius={82} paddingAngle={4}>
+                {issues.bySeverity.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="legend">
+            {issues.bySeverity.map((item) => (
+              <span key={item.name}>
+                <i style={{ background: item.color }} />
+                {item.name}
+                <strong>{item.value}</strong>
+              </span>
+            ))}
+          </div>
+        </div>
+      </Card>
+      <Card>
+        <div className="section-heading">
+          <div>
+            <h2>Project progress</h2>
+            <p>Completion across active projects</p>
+          </div>
+        </div>
+        <div className="report-projects">
+          {projectProgress.length > 0 ? (
+            projectProgress.map((project) => (
+              <div key={project.name}>
+                <div>
+                  <strong>{project.name}</strong>
+                  <span>{project.progress}%</span>
+                </div>
+                <ProgressBar value={project.progress} />
+                <small>{project.status}</small>
+              </div>
+            ))
+          ) : (
+            <EmptyState title="No projects yet" description="Create a project to track progress." />
+          )}
+        </div>
+      </Card>
+    </>
+  )
 }
 
 function TeamPage() {
-  const members = [{ name: 'Sanjay Ponaganti', email: 'sanjay@example.com', role: 'Project manager', tasks: 14, projects: 4 }, { name: 'Maya Chen', email: 'maya@example.com', role: 'Member', tasks: 11, projects: 3 }, { name: 'Alex Morgan', email: 'alex@example.com', role: 'Member', tasks: 8, projects: 2 }, { name: 'Priya Shah', email: 'priya@example.com', role: 'Member', tasks: 6, projects: 2 }]
-  return <><PageHeader eyebrow="Workspace" title="Team" description="See who is working on what." action={<Button icon={Plus}>Invite member</Button>} /><div className="member-grid">{members.map((member) => <Card className="member-card" key={member.email}><Avatar name={member.name} size="lg" /><h2>{member.name}</h2><p>{member.email}</p><Badge tone={member.role === 'Project manager' ? 'active' : 'neutral'}>{member.role}</Badge><div className="member-stats"><span><strong>{member.tasks}</strong> tasks</span><span><strong>{member.projects}</strong> projects</span></div></Card>)}</div></>
+  const [members, setMembers] = useState([])
+  const [tasks, setTasks] = useState([])
+  const [projects, setProjects] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function loadTeam() {
+      setLoading(true)
+      setError('')
+      try {
+        const [usersResponse, tasksResponse, projectsResponse] = await Promise.all([
+          api.get('/api/users'),
+          api.get('/api/tasks'),
+          api.get('/api/projects'),
+        ])
+        setMembers(usersResponse.data.users || [])
+        setTasks(tasksResponse.data.tasks || [])
+        setProjects(projectsResponse.data.projects || [])
+      } catch (requestError) {
+        setError(requestError.response?.data?.message || 'Unable to load team.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadTeam()
+  }, [])
+
+  function countMemberTasks(memberId) {
+    return tasks.filter((task) => task.assignedTo?._id === memberId || task.assignedTo === memberId).length
+  }
+
+  function countMemberProjects(memberId) {
+    return projects.filter((project) => project.manager?._id === memberId || project.manager === memberId || project.members?.some((member) => member._id === memberId || member === memberId)).length
+  }
+
+  if (loading) return <div className="loading-screen"><div className="spinner" />Loading team...</div>
+
+  return <><PageHeader eyebrow="Workspace" title="Team" description="See who is working on what." action={<Button icon={Plus}>Invite member</Button>} /><ProjectError message={error} />{members.length === 0 ? <Card><EmptyState title="No team members yet" description="Registered workspace users will appear here." /></Card> : <div className="member-grid">{members.map((member) => { const roleLabel = member.role === 'PROJECT_MANAGER' ? 'Project manager' : 'Member'; return <Card className="member-card" key={member._id || member.email}><Avatar name={member.name} size="lg" /><h2>{member.name}</h2><p>{member.email}</p><Badge tone={member.role === 'PROJECT_MANAGER' ? 'active' : 'neutral'}>{roleLabel}</Badge><div className="member-stats"><span><strong>{countMemberTasks(member._id)}</strong> tasks</span><span><strong>{countMemberProjects(member._id)}</strong> projects</span></div></Card> })}</div>}</>
 }
 
 function ProfilePage() {
@@ -431,29 +547,400 @@ function FormPage({ title, description }) {
   return <><PageHeader eyebrow="Workspace" title={title} description={description} /><Card className="form-card"><label>Name<input placeholder="Enter a name" /></label><label>Description<textarea placeholder="Add a short description" rows="4" /></label><div className="form-row"><label>Start date<input type="date" /></label><label>Deadline<input type="date" /></label></div><Button>Save draft</Button></Card></>
 }
 
+function MilestoneForm({ projectId, initialData, onSubmit, onCancel }) {
+  const edit = !!initialData
+  const [form, setForm] = useState({
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    dueDate: initialData?.dueDate ? initialData.dueDate.slice(0, 10) : '',
+    status: initialData?.status || 'PLANNED',
+  })
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [showForm, setShowForm] = useState(edit)
+
+  if (edit) {
+    return (
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="milestone-form">
+        <div className="form-row">
+          <label>Name<input name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Milestone name" /></label>
+          <label>Due date<input name="dueDate" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} type="date" required /></label>
+        </div>
+        <label>Description<textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows="2" placeholder="Add a short description" /></label>
+        <label>Status<select name="status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="PLANNED">Planned</option><option value="IN_PROGRESS">In Progress</option><option value="COMPLETED">Completed</option></select></label>
+        {error && <div className="form-error"><XCircle size={16} />{error}</div>}
+        <div className="form-actions">
+          <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</Button>
+          <Button variant="secondary" type="button" onClick={onCancel}>Cancel</Button>
+        </div>
+      </form>
+    )
+  }
+
+  if (!showForm) {
+    return <Button icon={Plus} onClick={() => setShowForm(true)}>Create milestone</Button>
+  }
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="milestone-form">
+      <div className="form-row">
+        <label>Name<input name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Milestone name" autoFocus /></label>
+        <label>Due date<input name="dueDate" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} type="date" required /></label>
+      </div>
+      <label>Description<textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows="2" placeholder="Add a short description" /></label>
+      <label>Status<select name="status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="PLANNED">Planned</option><option value="IN_PROGRESS">In Progress</option><option value="COMPLETED">Completed</option></select></label>
+      {error && <div className="form-error"><XCircle size={16} />{error}</div>}
+      <div className="form-actions">
+        <Button type="submit" disabled={saving}>{saving ? 'Creating...' : 'Create milestone'}</Button>
+        <Button variant="secondary" type="button" onClick={() => { setShowForm(false); setForm({ name: '', description: '', dueDate: '', status: 'PLANNED' }) }}>Cancel</Button>
+      </div>
+    </form>
+  )
+}
+
 function ProjectDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
   const [project, setProject] = useState(null)
+  const [milestones, setMilestones] = useState([])
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
-  useEffect(() => { api.get(`/api/projects/${id}`).then(({ data }) => setProject(data.project)).catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load project.')).finally(() => setLoading(false)) }, [id])
+  const [milestonesLoading, setMilestonesLoading] = useState(true)
+
+  useEffect(() => {
+    api.get(`/api/projects/${id}`)
+      .then(({ data }) => setProject(data.project))
+      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load project.'))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    setMilestonesLoading(true)
+    api.get(`/api/projects/${id}/milestones`)
+      .then(({ data }) => setMilestones(data.milestones || []))
+      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load milestones.'))
+      .finally(() => setMilestonesLoading(false))
+  }, [id])
+
   async function addMember(event) {
     event.preventDefault()
-    try { const { data } = await api.post(`/api/projects/${id}/members`, { email }); setProject(data.project); setEmail('') } catch (requestError) { setError(requestError.response?.data?.message || 'Unable to add member.') }
+    try {
+      const { data } = await api.post(`/api/projects/${id}/members`, { email })
+      setProject(data.project)
+      setEmail('')
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to add member.')
+    }
   }
+
   async function removeMember(memberId) {
-    try { const { data } = await api.delete(`/api/projects/${id}/members/${memberId}`); setProject(data.project) } catch (requestError) { setError(requestError.response?.data?.message || 'Unable to remove member.') }
+    try {
+      const { data } = await api.delete(`/api/projects/${id}/members/${memberId}`)
+      setProject(data.project)
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to remove member.')
+    }
   }
+
+  async function createMilestone(milestoneData) {
+    try {
+      const { data } = await api.post(`/api/projects/${id}/milestones`, { ...milestoneData, project: id })
+      setMilestones((current) => [...current, data.milestone].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)))
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to create milestone.')
+      throw requestError
+    }
+  }
+
+  async function updateMilestone(milestoneId, milestoneData) {
+    try {
+      const { data } = await api.put(`/api/projects/${id}/milestones/${milestoneId}`, milestoneData)
+      setMilestones((current) =>
+        current.map((m) => (m._id === milestoneId ? data.milestone : m))
+          .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      )
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to update milestone.')
+      throw requestError
+    }
+  }
+
+  async function deleteMilestone(milestoneId) {
+    if (!window.confirm('Delete this milestone?')) return
+    try {
+      await api.delete(`/api/projects/${id}/milestones/${milestoneId}`)
+      setMilestones((current) => current.filter((m) => m._id !== milestoneId))
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to delete milestone.')
+    }
+  }
+
   if (loading) return <div className="loading-screen"><div className="spinner" />Loading project...</div>
   if (!project) return <ProjectError message={error || 'Project not found.'} />
+
   const canManage = user?.role === 'PROJECT_MANAGER' && project.manager?._id === user.id
-  return <><PageHeader eyebrow="Project overview" title={project.name} description={project.description || 'No description provided.'} action={canManage && <Link to={`/projects/${id}/edit`} className="button button-secondary">Edit project</Link>} /><ProjectError message={error} /><div className="detail-grid"><Card><div className="section-heading"><h2>Overview</h2><Badge tone={project.status}>{project.status}</Badge></div><p className="detail-copy">Created {new Date(project.createdAt).toLocaleDateString()} · Managed by {project.manager?.name || 'Unknown'}</p><div className="detail-progress"><div><span>Status</span><strong>{project.status}</strong></div><ProgressBar value={project.status === 'COMPLETED' ? 100 : project.status === 'ACTIVE' ? 50 : 0} /></div></Card><Card><div className="section-heading"><h2>Members</h2><Users size={18} /></div>{canManage && <form className="member-form" onSubmit={addMember}><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required placeholder="member@example.com" /><Button type="submit">Add</Button></form>}<div className="activity-list">{project.members?.map((member) => <div className="activity-row" key={member._id}><Avatar name={member.name} size="sm" /><div><strong>{member.name}</strong><small>{member.email}</small></div>{canManage && member._id !== project.manager?._id && <button className="more-button" onClick={() => removeMember(member._id)}><X size={15} /></button>}</div>)}</div></Card></div></>
+
+  function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString()
+  }
+
+  function getStatusBadgeTone(status) {
+    switch (status) {
+      case 'COMPLETED':
+        return 'completed'
+      case 'IN_PROGRESS':
+        return 'active'
+      default:
+        return 'planned'
+    }
+  }
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Project overview"
+        title={project.name}
+        description={project.description || 'No description provided.'}
+        action={canManage && <Link to={`/projects/${id}/edit`} className="button button-secondary">Edit project</Link>}
+      />
+      <ProjectError message={error} />
+      <div className="detail-grid">
+        <Card>
+          <div className="section-heading">
+            <h2>Overview</h2>
+            <Badge tone={project.status}>{project.status}</Badge>
+          </div>
+          <p className="detail-copy">Created {new Date(project.createdAt).toLocaleDateString()} · Managed by {project.manager?.name || 'Unknown'}</p>
+          <div className="detail-progress">
+            <div><span>Status</span><strong>{project.status}</strong></div>
+            <ProgressBar value={project.status === 'COMPLETED' ? 100 : project.status === 'ACTIVE' ? 50 : 0} />
+          </div>
+        </Card>
+        <Card>
+          <div className="section-heading"><h2>Members</h2><Users size={18} /></div>
+          {canManage && <form className="member-form" onSubmit={addMember}><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" required placeholder="member@example.com" /><Button type="submit">Add</Button></form>}
+          <div className="activity-list">
+            {project.members?.map((member) => (
+              <div className="activity-row" key={member._id}>
+                <Avatar name={member.name} size="sm" />
+                <div><strong>{member.name}</strong><small>{member.email}</small></div>
+                {canManage && member._id !== project.manager?._id && <button className="more-button" onClick={() => removeMember(member._id)}><X size={15} /></button>}
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <div className="section-heading">
+            <h2>Milestones</h2>
+            <Target size={18} />
+            {canManage && (
+              <MilestoneForm
+                projectId={id}
+                onSubmit={createMilestone}
+                onCancel={() => {}}
+              />
+            )}
+          </div>
+          {milestonesLoading ? (
+            <div className="loading-screen"><div className="spinner" />Loading milestones...</div>
+          ) : milestones.length === 0 ? (
+            <EmptyState
+              title="No milestones yet"
+              description={canManage ? 'Create a milestone to track key project deliverables.' : 'This project has no milestones yet.'}
+              action={canManage && <Button icon={Plus} size="sm">Create milestone</Button>}
+            />
+          ) : (
+            <div className="milestone-list">
+              {milestones.map((milestone) => (
+                <div className="milestone-item" key={milestone._id}>
+                  <div className="milestone-main">
+                    <div className="milestone-header">
+                      <strong>{milestone.name}</strong>
+                      <Badge tone={getStatusBadgeTone(milestone.status)}>{milestone.status.replace('_', ' ')}</Badge>
+                    </div>
+                    <p className="milestone-description">{milestone.description || 'No description'}</p>
+                    <div className="milestone-meta">
+                      <span><CalendarDays size={14} /> Due: {formatDate(milestone.dueDate)}</span>
+                      <span><Users size={14} /> Created by: {milestone.createdBy?.name || 'Unknown'}</span>
+                    </div>
+                  </div>
+                  {canManage && (
+                    <div className="milestone-actions">
+                      <MilestoneForm
+                        projectId={id}
+                        initialData={milestone}
+                        onSubmit={(data) => updateMilestone(milestone._id, data)}
+                        onCancel={() => {}}
+                      />
+                      <button className="more-button" onClick={() => deleteMilestone(milestone._id)} title="Delete milestone">
+                        <X size={15} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+    </>
+  )
 }
 
 function SearchPage() {
-  return <><PageHeader eyebrow="Workspace" title="Search" description="Find projects, tasks, issues, and people." /><Card className="search-page"><label className="search-field large"><Search size={19} /><input autoFocus placeholder="Search your workspace..." /></label><EmptyState title="Search your workspace" description="Start typing to find anything across your projects." /></Card></>
+  const location = useLocation()
+  const initialQuery = useMemo(() => new URLSearchParams(location.search).get('q') || '', [location.search])
+  const [query, setQuery] = useState(initialQuery)
+  const [results, setResults] = useState({ projects: [], tasks: [], issues: [], users: [] })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSearch(nextQuery = query) {
+    const trimmed = nextQuery.trim()
+    if (!trimmed) {
+      setResults({ projects: [], tasks: [], issues: [], users: [] })
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const response = await api.get('/api/search', { params: { q: trimmed } })
+      setResults({
+        projects: response.data.projects || [],
+        tasks: response.data.tasks || [],
+        issues: response.data.issues || [],
+        users: response.data.users || [],
+      })
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to search.')
+      setResults({ projects: [], tasks: [], issues: [], users: [] })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (initialQuery) {
+      setQuery(initialQuery)
+      handleSearch(initialQuery)
+    }
+  }, [initialQuery])
+
+  const hasResults = results.projects.length + results.tasks.length + results.issues.length + results.users.length > 0
+
+  function renderProject(project) {
+    return (
+      <Link to={`/projects/${project._id}`} className="search-result-item" key={project._id}>
+        <span className="result-type">Project</span>
+        <div className="result-main">
+          <strong>{project.name}</strong>
+          <small>{project.description || 'No description'}</small>
+        </div>
+        <Badge tone={project.status}>{project.status}</Badge>
+      </Link>
+    )
+  }
+
+  function renderTask(task) {
+    return (
+      <Link to={`/tasks/${task._id}`} className="search-result-item" key={task._id}>
+        <span className="result-type">Task</span>
+        <div className="result-main">
+          <strong>{task.title}</strong>
+          <small>{task.project?.name} · {task.assignedTo?.name}</small>
+        </div>
+        <Badge tone={task.priority}>{task.priority}</Badge>
+      </Link>
+    )
+  }
+
+  function renderIssue(issue) {
+    return (
+      <Link to={`/issues/${issue._id}`} className="search-result-item" key={issue._id}>
+        <span className="result-type">Issue</span>
+        <div className="result-main">
+          <strong>{issue.title}</strong>
+          <small>{issue.project?.name} · {issue.assignedTo?.name || 'Unassigned'}</small>
+        </div>
+        <Badge tone={issue.severity}>{issue.severity}</Badge>
+      </Link>
+    )
+  }
+
+  function renderUser(user) {
+    return (
+      <div className="search-result-item" key={user._id}>
+        <span className="result-type">Member</span>
+        <div className="result-main">
+          <strong>{user.name}</strong>
+          <small>{user.email}</small>
+        </div>
+        <Badge tone={user.role === 'PROJECT_MANAGER' ? 'active' : 'neutral'}>
+          {user.role === 'PROJECT_MANAGER' ? 'Project Manager' : 'Member'}
+        </Badge>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <PageHeader eyebrow="Workspace" title="Search" description="Find projects, tasks, issues, and people." />
+      <Card className="search-page">
+        <label className="search-field large">
+          <Search size={19} />
+          <input
+            autoFocus
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
+            placeholder="Search your workspace..."
+          />
+          <Button onClick={handleSearch} disabled={loading || !query.trim()}>
+            {loading ? 'Searching...' : 'Search'}
+          </Button>
+        </label>
+
+        {error && <div className="form-error"><XCircle size={16} />{error}</div>}
+
+        {loading ? (
+          <div className="loading-screen"><div className="spinner" />Searching...</div>
+        ) : !query.trim() ? (
+          <EmptyState title="Search your workspace" description="Enter a query to find anything across your projects." />
+        ) : !hasResults ? (
+          <EmptyState title="No results found" description={`No projects, tasks, issues, or members match "${query}".`} />
+        ) : (
+          <div className="search-results">
+            {results.projects.length > 0 && (
+              <div className="search-section">
+                <h3>Projects ({results.projects.length})</h3>
+                <div className="search-list">{results.projects.map(renderProject)}</div>
+              </div>
+            )}
+            {results.tasks.length > 0 && (
+              <div className="search-section">
+                <h3>Tasks ({results.tasks.length})</h3>
+                <div className="search-list">{results.tasks.map(renderTask)}</div>
+              </div>
+            )}
+            {results.issues.length > 0 && (
+              <div className="search-section">
+                <h3>Issues ({results.issues.length})</h3>
+                <div className="search-list">{results.issues.map(renderIssue)}</div>
+              </div>
+            )}
+            {results.users.length > 0 && (
+              <div className="search-section">
+                <h3>Members ({results.users.length})</h3>
+                <div className="search-list">{results.users.map(renderUser)}</div>
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+    </>
+  )
 }
 
 function NotFound() { return <div className="not-found"><XCircle size={42} /><h1>Page not found</h1><p>The page you are looking for does not exist.</p><Link to="/dashboard" className="button button-primary">Back to dashboard</Link></div> }
@@ -464,7 +951,7 @@ export default function App() {
     <Route path="/login" element={<AuthPage mode="login" />} />
     <Route path="/register" element={<AuthPage mode="register" />} />
     <Route element={<ProtectedLayout />}>
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/projects" element={<ProjectsPage />} />
       <Route path="/projects/new" element={<ProjectForm />} />
       <Route path="/projects/:id" element={<ProjectDetailPage />} />

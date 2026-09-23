@@ -18,9 +18,8 @@ import {
   Avatar,
   AvatarGroup,
   ProgressBar,
-  Button,
   LoadingState,
-  ErrorState,
+  EmptyState,
 } from '../components/UI.jsx'
 import api from '../services/api.js'
 
@@ -154,32 +153,14 @@ export function TeamsPage() {
 
   if (loading) return <LoadingState message="Loading squad divisions..." />
 
-  const squads = [
-    {
-      id: 'core-fe',
-      name: 'Frontend Engineering Squad',
-      desc: 'Responsible for responsive web applications, design token libraries, and component UX.',
-      lead: users[0] || { name: 'Alex Morgan' },
-      members: users.slice(3, 7),
-      activeProject: projects[0]?.name || 'Atlas Mobile App v2',
-    },
-    {
-      id: 'platform-devops',
-      name: 'Cloud Platform & Reliability',
-      desc: 'Kubernetes orchestration, automated CI/CD pipelines, and zero-downtime databases.',
-      lead: users[1] || { name: 'Sarah Chen' },
-      members: users.slice(7, 11),
-      activeProject: projects[1]?.name || 'Cloud Infrastructure Migration',
-    },
-    {
-      id: 'fintech-core',
-      name: 'Financial Ledger & Security',
-      desc: 'PCI-DSS certified payment streams, automated reconciliation, and audit pipelines.',
-      lead: users[2] || { name: 'David Wilson' },
-      members: users.slice(11, 15),
-      activeProject: projects[2]?.name || 'FinTech Customer Portal',
-    },
-  ]
+  const squads = projects.map((project) => ({
+    id: project._id,
+    name: project.name,
+    desc: project.description || 'Project team',
+    lead: project.manager,
+    members: project.members || [],
+    activeProject: project.name,
+  }))
 
   return (
     <div>
@@ -189,8 +170,17 @@ export function TeamsPage() {
         description="Functional engineering groups, squad leads, and cross-project allocations."
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
-        {squads.map((squad) => (
+      {squads.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={Layers}
+            title="No teams yet"
+            description="Project teams will appear here after projects and members are added."
+          />
+        </Card>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
+          {squads.map((squad) => (
           <Card key={squad.id} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <h3 className="card-title" style={{ fontSize: 16 }}>{squad.name}</h3>
@@ -200,8 +190,8 @@ export function TeamsPage() {
             <div style={{ padding: '10px 12px', background: 'var(--bg-app)', borderRadius: 8 }}>
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Squad Lead</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                <Avatar name={squad.lead.name} avatar={squad.lead.avatar} size="xs" />
-                <strong style={{ fontSize: 13, color: '#0f172a' }}>{squad.lead.name}</strong>
+                <Avatar name={squad.lead?.name || 'Project manager'} avatar={squad.lead?.avatar} size="xs" />
+                <strong style={{ fontSize: 13, color: '#0f172a' }}>{squad.lead?.name || 'Project manager'}</strong>
               </div>
             </div>
 
@@ -213,8 +203,9 @@ export function TeamsPage() {
               <AvatarGroup users={squad.members} max={5} size="sm" />
             </div>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

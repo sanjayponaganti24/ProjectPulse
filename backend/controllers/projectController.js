@@ -154,7 +154,8 @@ export async function addMember(req, res, next) {
       res.status(404).json({ success: false, message: 'Member not found.' })
       return
     }
-    if (!project.members.some((item) => item._id.toString() === memberId.toString())) {
+    const memberObjectId = member._id.toString()
+    if (!project.members.some((item) => item._id.toString() === memberObjectId)) {
       project.members.push(member._id)
       await project.save()
     }

@@ -139,7 +139,7 @@ export default function LandingPage() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
           <Link to="/login">
             <Button size="md" icon={ArrowRight}>
-              Launch Demo Workspace
+              Sign in to Workspace
             </Button>
           </Link>
           <Link to="/register">
@@ -149,27 +149,6 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        {/* Demo Credentials Pill */}
-        <div
-          style={{
-            marginTop: 24,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 999,
-            padding: '6px 16px',
-            fontSize: 12,
-            color: '#64748b',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          }}
-        >
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
-          <span>Demo PM login: <strong>alex.morgan@projectpulse.dev</strong> (password: <strong>Sanju@03</strong>)</span>
-        </div>
-
-        {/* Mock Application Card Preview */}
         <div
           style={{
             marginTop: 50,
@@ -203,24 +182,24 @@ export default function LandingPage() {
 
           <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
             <div style={{ background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Active Projects</span>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '6px 0' }}>4</div>
-              <Badge tone="active">On Track</Badge>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Projects</span>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '6px 0' }}>--</div>
+              <Badge tone="active">Live data</Badge>
             </div>
             <div style={{ background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Pending Tasks</span>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '6px 0' }}>15</div>
-              <Badge tone="medium">In Progress</Badge>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Tasks</span>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '6px 0' }}>--</div>
+              <Badge tone="medium">Assigned</Badge>
             </div>
             <div style={{ background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Open Issues</span>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '6px 0' }}>5</div>
-              <Badge tone="critical">Triage Req</Badge>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Issues</span>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '6px 0' }}>--</div>
+              <Badge tone="critical">Tracked</Badge>
             </div>
             <div style={{ background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Sprint Velocity</span>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '6px 0' }}>92%</div>
-              <Badge tone="completed">+8% vs prior</Badge>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Progress</span>
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '6px 0' }}>--</div>
+              <Badge tone="completed">Reported</Badge>
             </div>
           </div>
         </div>

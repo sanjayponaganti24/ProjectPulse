@@ -9,7 +9,10 @@ import { errorHandler, notFound } from './middleware/errorMiddleware.js'
 import authRoutes from './routes/authRoutes.js'
 import healthRoutes from './routes/healthRoutes.js'
 import issueRoutes from './routes/issueRoutes.js'
+import milestoneRoutes from './routes/milestoneRoutes.js'
 import projectRoutes from './routes/projectRoutes.js'
+import reportRoutes from './routes/reportRoutes.js'
+import searchRoutes from './routes/searchRoutes.js'
 import taskRoutes from './routes/taskRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 
@@ -39,6 +42,9 @@ app.use('/api/auth', authRoutes)
 app.use('/api/projects', projectRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/issues', issueRoutes)
+app.use('/api/reports', reportRoutes)
+app.use('/api/search', searchRoutes)
+app.use('/api/projects/:projectId/milestones', milestoneRoutes)
 app.use('/api/users', userRoutes)
 app.use(notFound)
 app.use(errorHandler)

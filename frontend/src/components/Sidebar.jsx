@@ -2,27 +2,29 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   FolderKanban,
-  CheckSquare,
-  Trello,
-  AlertCircle,
-  Flag,
-  Zap,
-  Calendar,
+  ClipboardList,
+  Target,
   Users,
-  Layers,
-  BarChart2,
-  PieChart,
-  MessageSquare,
-  FileText,
-  Shield,
+  CircleAlert,
+  Activity,
+  Search,
   Settings,
-  History,
   LogOut,
   X,
-  UserCheck,
+  ChevronDown,
 } from 'lucide-react'
 import { Avatar } from './UI.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+
+const navItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/projects', label: 'Projects', icon: FolderKanban },
+  { to: '/tasks', label: 'Tasks', icon: ClipboardList },
+  { to: '/kanban', label: 'Kanban', icon: Target },
+  { to: '/team', label: 'Team', icon: Users },
+  { to: '/issues', label: 'Issues', icon: CircleAlert },
+  { to: '/reports', label: 'Reports', icon: Activity },
+]
 
 export default function Sidebar({ mobileOpen, onCloseMobile }) {
   const { user, logout } = useAuth()
@@ -37,127 +39,74 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
     }
   }
 
-  const navSections = [
-    {
-      title: 'Work Management',
-      items: [
-        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { to: '/projects', label: 'Projects', icon: FolderKanban },
-        { to: '/tasks', label: 'Tasks', icon: CheckSquare },
-        { to: '/kanban', label: 'Kanban Board', icon: Trello },
-        { to: '/issues', label: 'Issues & Bugs', icon: AlertCircle },
-      ],
-    },
-    {
-      title: 'Planning & Delivery',
-      items: [
-        { to: '/milestones', label: 'Milestones', icon: Flag },
-        { to: '/sprints', label: 'Sprints', icon: Zap },
-        { to: '/calendar', label: 'Calendar', icon: Calendar },
-      ],
-    },
-    {
-      title: 'Collaboration',
-      items: [
-        { to: '/team', label: 'Team Members', icon: Users },
-        { to: '/teams', label: 'Teams / Squads', icon: Layers },
-        { to: '/workload', label: 'Workload', icon: BarChart2 },
-        { to: '/activity', label: 'Comments & Activity', icon: MessageSquare },
-        { to: '/files', label: 'Files & Assets', icon: FileText },
-      ],
-    },
-    {
-      title: 'Insights & Logs',
-      items: [
-        { to: '/reports', label: 'Reports & Analytics', icon: PieChart },
-        { to: '/history', label: 'Audit History', icon: History },
-      ],
-    },
-    {
-      title: 'Administration',
-      items: [
-        { to: '/admin/users', label: 'Organisation Users', icon: UserCheck },
-        { to: '/admin/roles', label: 'Roles & Permissions', icon: Shield },
-        { to: '/admin/settings', label: 'Org Settings', icon: Settings },
-      ],
-    },
-  ]
-
-  const roleLabel = user?.role === 'PROJECT_MANAGER' ? 'Project Manager' : 'Member'
+  const roleLabel = user?.role === 'PROJECT_MANAGER' ? 'Project manager' : 'Member'
 
   return (
     <>
       {mobileOpen && (
-        <div
+        <button
+          type="button"
+          className="mobile-overlay"
           onClick={onCloseMobile}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.4)',
-            zIndex: 35,
-          }}
+          aria-label="Close navigation"
         />
       )}
-      <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
-        <div className="sidebar-header">
-          <div className="brand-logo">
-            <div className="brand-icon">P</div>
+      <aside className={`sidebar ${mobileOpen ? 'sidebar-open' : ''}`}>
+        <div className="sidebar-brand-row">
+          <div className="brand">
+            <span className="brand-mark">P</span>
             <span>
               Project<span className="brand-accent">Pulse</span>
             </span>
           </div>
-          {mobileOpen && (
-            <button
-              onClick={onCloseMobile}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-            >
-              <X size={20} />
-            </button>
-          )}
+          <button type="button" className="mobile-close" onClick={onCloseMobile} aria-label="Close menu">
+            <X size={18} />
+          </button>
         </div>
 
-        <div className="sidebar-workspace">
-          <div className="workspace-badge">PP</div>
-          <div className="workspace-info">
-            <strong>Acme Global Corp</strong>
-            <small>Enterprise Workspace</small>
+        <p className="sidebar-tagline">Plan. Assign. Track. Complete.</p>
+
+        <div className="workspace-switcher">
+          <div className="workspace-mark">P</div>
+          <div>
+            <strong>ProjectPulse workspace</strong>
+            <small>{roleLabel}</small>
           </div>
+          <ChevronDown size={15} aria-hidden />
         </div>
 
-        <div className="sidebar-nav-container">
-          {navSections.map((section) => (
-            <div key={section.title}>
-              <div className="nav-section-title">{section.title}</div>
-              <ul className="nav-link-list">
-                {section.items.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <li key={item.to}>
-                      <NavLink
-                        to={item.to}
-                        onClick={onCloseMobile}
-                        className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                      >
-                        <Icon size={16} />
-                        <span>{item.label}</span>
-                      </NavLink>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
+        <nav className="sidebar-nav" aria-label="Main">
+          {navItems.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onCloseMobile}
+              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </NavLink>
           ))}
+        </nav>
+
+        <div className="sidebar-secondary">
+          <NavLink to="/search" onClick={onCloseMobile} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            <Search size={18} />
+            <span>Search</span>
+          </NavLink>
+          <NavLink to="/profile" onClick={onCloseMobile} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            <Settings size={18} />
+            <span>Profile</span>
+          </NavLink>
         </div>
 
-        <div className="sidebar-footer">
-          <NavLink to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-            <Avatar name={user?.name || 'User'} avatar={user?.avatar} size="sm" />
-            <div className="sidebar-user-meta">
-              <strong>{user?.name || 'Workspace User'}</strong>
-              <span>{roleLabel}</span>
-            </div>
-          </NavLink>
-          <button onClick={handleLogout} className="sidebar-logout-btn" title="Sign out">
+        <div className="sidebar-user">
+          <Avatar name={user?.name || 'User'} size="md" />
+          <div>
+            <strong>{user?.name || 'Workspace user'}</strong>
+            <small>{roleLabel}</small>
+          </div>
+          <button type="button" onClick={handleLogout} title="Log out" aria-label="Log out">
             <LogOut size={16} />
           </button>
         </div>

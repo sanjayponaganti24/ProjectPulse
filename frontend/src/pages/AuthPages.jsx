@@ -32,11 +32,6 @@ export function LoginPage() {
     }
   }
 
-  function fillDemo(demoEmail) {
-    setEmail(demoEmail)
-    setPassword('Sanju@03')
-  }
-
   return (
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f8fafc', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
@@ -134,48 +129,6 @@ export function LoginPage() {
             </Button>
           </form>
 
-          {/* Quick Demo Fill Buttons */}
-          <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #edf1f7' }}>
-            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-              Quick Demo Accounts
-            </span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => fillDemo('alex.morgan@projectpulse.dev')}
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 6,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Alex (PM)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('priya.sharma@projectpulse.dev')}
-                style={{
-                  flex: 1,
-                  padding: '7px 10px',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 6,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#334155',
-                  cursor: 'pointer',
-                }}
-              >
-                Priya (Member)
-              </button>
-            </div>
-          </div>
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b', marginTop: 20 }}>
@@ -309,7 +262,7 @@ export function RegisterPage() {
                 name="name"
                 type="text"
                 className="form-input"
-                placeholder="Sarah Chen"
+                placeholder="Your full name"
                 value={form.name}
                 onChange={update}
                 required

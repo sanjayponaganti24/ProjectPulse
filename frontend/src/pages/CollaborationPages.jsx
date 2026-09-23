@@ -4,15 +4,7 @@ import {
   MessageSquare,
   FileText,
   Bell,
-  CheckCircle2,
-  Clock,
-  Download,
-  FileCode,
-  FileSpreadsheet,
-  Image,
-  Folder,
   Check,
-  Filter,
 } from 'lucide-react'
 import {
   PageHeader,
@@ -21,7 +13,7 @@ import {
   Avatar,
   Button,
   LoadingState,
-  ErrorState,
+  EmptyState,
 } from '../components/UI.jsx'
 import api from '../services/api.js'
 
@@ -137,60 +129,6 @@ export function ActivityPage() {
 }
 
 export function FilesPage() {
-  // Document registry structured for SaaS files view without fake upload persistence
-  const initialFiles = [
-    {
-      id: 'f1',
-      name: 'System_Architecture_v2.pdf',
-      project: 'Atlas Mobile App v2',
-      size: '4.2 MB',
-      updated: 'Sep 18, 2026',
-      author: 'Alex Morgan',
-      icon: FileText,
-      tag: 'PDF Specification',
-    },
-    {
-      id: 'f2',
-      name: 'EKS_Cluster_Terraform_Config.tf',
-      project: 'Cloud Infrastructure Migration',
-      size: '184 KB',
-      updated: 'Sep 14, 2026',
-      author: 'Sarah Chen',
-      icon: FileCode,
-      tag: 'IaC Manifest',
-    },
-    {
-      id: 'f3',
-      name: 'PCI_DSS_Audit_Checklist.xlsx',
-      project: 'FinTech Customer Portal',
-      size: '1.1 MB',
-      updated: 'Sep 10, 2026',
-      author: 'David Wilson',
-      icon: FileSpreadsheet,
-      tag: 'Compliance Doc',
-    },
-    {
-      id: 'f4',
-      name: 'Design_Tokens_LUNO_Palette.json',
-      project: 'Design System & Component Library',
-      size: '42 KB',
-      updated: 'Sep 21, 2026',
-      author: 'Priya Sharma',
-      icon: FileCode,
-      tag: 'Design Tokens',
-    },
-    {
-      id: 'f5',
-      name: 'Onboarding_User_Flow_Diagram.png',
-      project: 'Atlas Mobile App v2',
-      size: '2.8 MB',
-      updated: 'Sep 19, 2026',
-      author: 'Emily Davis',
-      icon: Image,
-      tag: 'Asset Diagram',
-    },
-  ]
-
   return (
     <div>
       <PageHeader
@@ -199,122 +137,20 @@ export function FilesPage() {
         description="Specifications, architectural diagrams, compliance matrices, and assets."
       />
 
-      <div className="table-responsive">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>File Name</th>
-              <th>Project Scope</th>
-              <th>Category</th>
-              <th>File Size</th>
-              <th>Last Modified</th>
-              <th>Uploaded By</th>
-              <th style={{ textAlign: 'right' }}>Download</th>
-            </tr>
-          </thead>
-          <tbody>
-            {initialFiles.map((f) => {
-              const Icon = f.icon
-              return (
-                <tr key={f.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 6,
-                          background: '#eef2ff',
-                          color: '#4f46e5',
-                          display: 'grid',
-                          placeItems: 'center',
-                        }}
-                      >
-                        <Icon size={16} />
-                      </div>
-                      <span style={{ fontWeight: 600, color: '#0f172a' }}>{f.name}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span style={{ color: 'var(--text-muted)' }}>{f.project}</span>
-                  </td>
-                  <td>
-                    <Badge tone="low">{f.tag}</Badge>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{f.size}</span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{f.updated}</span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: 12, fontWeight: 500 }}>{f.author}</span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button
-                      onClick={() => alert(`Download started for ${f.name}`)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--primary)',
-                        cursor: 'pointer',
-                        padding: 6,
-                      }}
-                      title="Download file"
-                    >
-                      <Download size={16} />
-                    </button>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <EmptyState
+          icon={FileText}
+          title="File storage is not configured"
+          description="Uploaded project files will appear here after file storage is implemented."
+        />
+      </Card>
     </div>
   )
 }
 
 export function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('ALL')
-  const [notifications, setNotifications] = useState([
-    {
-      id: 'n1',
-      title: 'Task Assigned',
-      desc: 'Sarah Chen assigned you to "Provision EKS cluster with Terraform"',
-      time: '15 minutes ago',
-      read: false,
-      category: 'TASKS',
-      link: '/tasks',
-    },
-    {
-      id: 'n2',
-      title: 'High Severity Issue',
-      desc: 'David Wilson reported "Token expiry causes white screen on app resume"',
-      time: '1 hour ago',
-      read: false,
-      category: 'ISSUES',
-      link: '/issues',
-    },
-    {
-      id: 'n3',
-      title: 'Sprint 14 Target',
-      desc: 'Sprint 14 reached 68% milestone velocity benchmark.',
-      time: '3 hours ago',
-      read: true,
-      category: 'SYSTEM',
-      link: '/sprints',
-    },
-    {
-      id: 'n4',
-      title: 'Project Member Added',
-      desc: 'You were added as a contributor to "Atlas Mobile App v2".',
-      time: '1 day ago',
-      read: true,
-      category: 'MENTIONS',
-      link: '/projects',
-    },
-  ])
+  const [notifications, setNotifications] = useState([])
 
   function markAllRead() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))

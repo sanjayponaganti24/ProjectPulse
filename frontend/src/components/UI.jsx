@@ -2,10 +2,9 @@ import { forwardRef } from 'react'
 import { FolderKanban, AlertCircle, X } from 'lucide-react'
 
 export function Button({ children, variant = 'primary', size = 'md', icon: Icon, className = '', ...props }) {
-  const sizeClass = size === 'sm' ? 'btn-sm' : ''
-  const variantClass = `btn-${variant}`
+  const sizeClass = size === 'sm' ? 'button-sm' : ''
   return (
-    <button className={`btn ${variantClass} ${sizeClass} ${className}`} {...props}>
+    <button className={`button button-${variant} ${sizeClass} ${className}`.trim()} {...props}>
       {Icon && <Icon size={size === 'sm' ? 14 : 16} />}
       {children}
     </button>
@@ -13,19 +12,15 @@ export function Button({ children, variant = 'primary', size = 'md', icon: Icon,
 }
 
 export function Badge({ children, tone = 'neutral', className = '' }) {
-  const toneClass = `badge-${tone.toLowerCase().replace('-', '_')}`
-  return (
-    <span className={`badge ${toneClass} ${className}`}>
-      {children}
-    </span>
-  )
+  const toneClass = `badge-${tone.toLowerCase().replace(/_/g, '-')}`
+  return <span className={`badge ${toneClass} ${className}`.trim()}>{children}</span>
 }
 
 export const Card = forwardRef(function Card({ children, className = '', ...props }, ref) {
   return (
-    <div ref={ref} className={`card ${className}`} {...props}>
+    <section ref={ref} className={`card ${className}`.trim()} {...props}>
       {children}
-    </div>
+    </section>
   )
 })
 
@@ -38,10 +33,8 @@ export function Avatar({ name = 'User', avatar = '', size = 'md', className = ''
     .join('')
     .toUpperCase()
 
-  const sizeClass = `avatar-${size}`
-
   return (
-    <span className={`avatar ${sizeClass} ${className}`} title={name}>
+    <span className={`avatar avatar-${size} ${className}`.trim()} title={name}>
       {avatar ? <img src={avatar} alt={name} /> : initials}
     </span>
   )
@@ -57,15 +50,14 @@ export function AvatarGroup({ users = [], max = 4, size = 'sm' }) {
         <Avatar key={u._id || u.id || i} name={u.name} avatar={u.avatar} size={size} />
       ))}
       {remaining > 0 && (
-        <span className={`avatar avatar-${size}`} style={{ background: '#f1f5f9', color: '#64748b' }}>
-          +{remaining}
-        </span>
+        <span className={`avatar avatar-${size} avatar-overflow`}>+{remaining}</span>
       )}
     </div>
   )
 }
 
 export function PageHeader({ eyebrow, title, description, actions, action }) {
+  const headerAction = actions || action
   return (
     <div className="page-header">
       <div className="page-header-text">
@@ -73,41 +65,33 @@ export function PageHeader({ eyebrow, title, description, actions, action }) {
         <h1>{title}</h1>
         {description && <p>{description}</p>}
       </div>
-      {(actions || action) && (
-        <div className="page-header-actions">
-          {actions || action}
-        </div>
-      )}
+      {headerAction && <div className="page-header-actions">{headerAction}</div>}
     </div>
   )
 }
 
-export function StatCard({ label, value, subtext, icon: Icon, iconColor = '#4f46e5', iconBg = '#eef2ff', trend }) {
+export function StatCard({ label, value, subtext, icon: Icon, iconColor = 'var(--primary)', iconBg = 'var(--primary-soft)', trend }) {
   return (
-    <div className="stat-card">
+    <Card className="stat-card">
       <div className="stat-card-top">
-        <span className="stat-card-label">{label}</span>
+        <span>{label}</span>
         {Icon && (
-          <div className="stat-icon-wrapper" style={{ background: iconBg, color: iconColor }}>
+          <div className="stat-icon" style={{ color: iconColor, background: iconBg }}>
             <Icon size={18} />
           </div>
         )}
       </div>
-      <div className="stat-card-val">{value}</div>
-      {subtext && (
-        <div className={`stat-card-sub ${trend === 'up' ? 'positive' : ''}`}>
-          {subtext}
-        </div>
-      )}
-    </div>
+      <strong>{value}</strong>
+      {subtext && <small className={trend === 'up' ? 'stat-trend-up' : ''}>{subtext}</small>}
+    </Card>
   )
 }
 
-export function ProgressBar({ value = 0, color = 'var(--primary)' }) {
+export function ProgressBar({ value = 0, color }) {
   const clamped = Math.min(100, Math.max(0, value))
   return (
-    <div className="progress-container">
-      <div className="progress-fill" style={{ width: `${clamped}%`, backgroundColor: color }} />
+    <div className="progress-track">
+      <span style={{ width: `${clamped}%`, ...(color ? { background: color } : {}) }} />
     </div>
   )
 }
@@ -115,20 +99,20 @@ export function ProgressBar({ value = 0, color = 'var(--primary)' }) {
 export function EmptyState({ title = 'No items found', description = 'There are no records to display.', action, icon: Icon = FolderKanban }) {
   return (
     <div className="empty-state">
-      <div className="empty-state-icon">
-        <Icon size={24} />
+      <div className="empty-icon">
+        <Icon size={22} />
       </div>
       <h3>{title}</h3>
       <p>{description}</p>
-      {action && <div>{action}</div>}
+      {action && <div className="empty-state-action">{action}</div>}
     </div>
   )
 }
 
-export function LoadingState({ message = 'Loading data...' }) {
+export function LoadingState({ message = 'Loading...' }) {
   return (
-    <div className="page-loading">
-      <div className="loading-spinner" />
+    <div className="loading-screen loading-screen-inline">
+      <div className="spinner" />
       <span>{message}</span>
     </div>
   )
@@ -136,12 +120,12 @@ export function LoadingState({ message = 'Loading data...' }) {
 
 export function ErrorState({ message = 'An unexpected error occurred.', onRetry }) {
   return (
-    <div className="empty-state" style={{ color: 'var(--danger-text)' }}>
-      <div className="empty-state-icon" style={{ background: 'var(--danger-subtle)', color: 'var(--danger-text)' }}>
-        <AlertCircle size={24} />
+    <div className="empty-state error-state">
+      <div className="empty-icon empty-icon-danger">
+        <AlertCircle size={22} />
       </div>
       <h3>Something went wrong</h3>
-      <p style={{ color: 'var(--text-muted)' }}>{message}</p>
+      <p>{message}</p>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
           Try again
@@ -155,14 +139,11 @@ export function Modal({ isOpen, onClose, title, children, footer }) {
   if (!isOpen) return null
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" onClick={onClose} role="presentation">
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div className="modal-header">
-          <h3 className="card-title">{title}</h3>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)' }}
-          >
+          <h3 id="modal-title">{title}</h3>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
         </div>

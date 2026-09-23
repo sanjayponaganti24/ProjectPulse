@@ -141,6 +141,7 @@ export async function updateTask(req, res, next) {
       res.status(403).json({ success: false, message: 'Members may only update the status of tasks assigned to them.' })
       return
     }
+    let assignmentProject = project
     if (req.body.project && req.body.project.toString() !== task.project.toString()) {
       const newProject = await loadProject(req.body.project, res)
       if (!newProject) return
@@ -148,10 +149,9 @@ export async function updateTask(req, res, next) {
         res.status(403).json({ success: false, message: 'Only the new project manager can move a task.' })
         return
       }
-      project.manager = newProject.manager
-      project.members = newProject.members
+      assignmentProject = newProject
     }
-    if (manager && !await validateAssignee(project, req.body.assignedTo || task.assignedTo, res)) return
+    if (manager && !await validateAssignee(assignmentProject, req.body.assignedTo || task.assignedTo, res)) return
     const allowed = ['title', 'description', 'project', 'assignedTo', 'status', 'priority', 'dueDate']
     allowed.forEach((field) => {
       if (req.body[field] !== undefined) task[field] = req.body[field]

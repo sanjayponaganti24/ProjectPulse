@@ -1,333 +1,563 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  FolderKanban,
-  CheckSquare,
-  AlertCircle,
-  Clock,
+  Activity,
   ArrowRight,
+  CalendarDays,
+  Check,
+  CircleAlert,
+  ClipboardList,
+  FolderKanban,
   Plus,
-  TrendingUp,
-  CheckCircle2,
-  Calendar,
-  Layers,
 } from 'lucide-react'
 import {
-  ResponsiveContainer,
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-  PieChart,
-  Pie,
 } from 'recharts'
 import {
-  PageHeader,
-  StatCard,
-  Card,
-  Badge,
-  ProgressBar,
   Avatar,
+  Badge,
   Button,
-  LoadingState,
+  Card,
+  EmptyState,
   ErrorState,
+  LoadingState,
+  PageHeader,
+  ProgressBar,
 } from '../components/UI.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import api from '../services/api.js'
 
+function greetingForHour(hour) {
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function startOfDay(date) {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function projectProgressPercent(project, tasks) {
+  const projectTasks = tasks.filter(
+    (t) => t.project?._id === project._id || t.project === project._id,
+  )
+  if (projectTasks.length) {
+    const done = projectTasks.filter((t) => t.status === 'COMPLETED').length
+    return Math.round((done / projectTasks.length) * 100)
+  }
+  if (project.status === 'COMPLETED') return 100
+  if (project.status === 'ACTIVE') return 50
+  return 0
+}
+
+function taskSummaryForProject(project, tasks) {
+  const projectTasks = tasks.filter(
+    (t) => t.project?._id === project._id || t.project === project._id,
+  )
+  const open = projectTasks.filter((t) => t.status !== 'COMPLETED').length
+  const done = projectTasks.filter((t) => t.status === 'COMPLETED').length
+  if (!projectTasks.length) return 'No tasks linked'
+  return `${open} open · ${done} completed`
+}
+
+function formatDueLabel(dueDate) {
+  const due = startOfDay(dueDate)
+  const today = startOfDay(new Date())
+  const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return `${Math.abs(diffDays)}d overdue`
+  if (diffDays === 0) return 'Due today'
+  if (diffDays === 1) return 'Due tomorrow'
+  return due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+function buildRecentActivity(tasks, issues, projects) {
+  const events = []
+
+  tasks.forEach((task) => {
+    const time = task.updatedAt || task.createdAt
+    if (!time) return
+    events.push({
+      id: `task-${task._id}`,
+      time: new Date(time),
+      label: task.status === 'COMPLETED' ? 'Task completed' : 'Task updated',
+      title: task.title,
+      meta: task.project?.name || 'Project',
+      link: `/tasks/${task._id}`,
+      tone: 'task',
+    })
+  })
+
+  issues.forEach((issue) => {
+    const time = issue.updatedAt || issue.createdAt
+    if (!time) return
+    events.push({
+      id: `issue-${issue._id}`,
+      time: new Date(time),
+      label: 'Issue updated',
+      title: issue.title,
+      meta: issue.project?.name || 'Project',
+      link: `/issues/${issue._id}`,
+      tone: 'issue',
+    })
+  })
+
+  projects.forEach((project) => {
+    const time = project.updatedAt || project.createdAt
+    if (!time) return
+    events.push({
+      id: `project-${project._id}`,
+      time: new Date(time),
+      label: 'Project updated',
+      title: project.name,
+      meta: project.status?.replace('_', ' ') || 'Project',
+      link: `/projects/${project._id}`,
+      tone: 'project',
+    })
+  })
+
+  return events.sort((a, b) => b.time - a.time).slice(0, 8)
+}
+
 export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [projects, setProjects] = useState([])
   const [tasks, setTasks] = useState([])
   const [issues, setIssues] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      setError('')
-      try {
-        const [projRes, taskRes, issueRes] = await Promise.all([
-          api.get('/api/projects'),
-          api.get('/api/tasks'),
-          api.get('/api/issues'),
-        ])
-        setProjects(projRes.data.projects || [])
-        setTasks(taskRes.data.tasks || [])
-        setIssues(issueRes.data.issues || [])
-      } catch (err) {
-        console.error(err)
-        setError(err.response?.data?.message || 'Failed to load workspace metrics.')
-      } finally {
-        setLoading(false)
-      }
+  const loadDashboard = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const [projectsResponse, tasksResponse, issuesResponse] = await Promise.all([
+        api.get('/api/projects'),
+        api.get('/api/tasks'),
+        api.get('/api/issues'),
+      ])
+      setProjects(projectsResponse.data.projects || [])
+      setTasks(tasksResponse.data.tasks || [])
+      setIssues(issuesResponse.data.issues || [])
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to load dashboard.')
+    } finally {
+      setLoading(false)
     }
-    loadData()
   }, [])
 
-  if (loading) return <LoadingState message="Aggregating workspace analytics..." />
-  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />
+  useEffect(() => {
+    loadDashboard()
+  }, [loadDashboard])
 
-  const totalProjects = projects.length
-  const activeProjects = projects.filter((p) => p.status === 'ACTIVE').length
-  const completedProjects = projects.filter((p) => p.status === 'COMPLETED').length
+  const metrics = useMemo(() => {
+    const today = startOfDay(new Date())
+    const activeProjectList = projects.filter((p) => p.status === 'ACTIVE')
+    const openTasks = tasks.filter((t) => t.status !== 'COMPLETED')
+    const overdueTasks = tasks.filter((t) => {
+      if (t.status === 'COMPLETED' || !t.dueDate) return false
+      return startOfDay(t.dueDate) < today
+    })
+    const openIssues = issues.filter((i) => !['RESOLVED', 'CLOSED'].includes(i.status))
+    const todoTasks = tasks.filter((t) => t.status === 'TODO').length
+    const inProgressTasks = tasks.filter((t) => t.status === 'IN_PROGRESS').length
+    const completedTasks = tasks.filter((t) => t.status === 'COMPLETED').length
 
-  const totalTasks = tasks.length
-  const completedTasks = tasks.filter((t) => t.status === 'COMPLETED').length
-  const inProgressTasks = tasks.filter((t) => t.status === 'IN_PROGRESS').length
-  const pendingTasks = tasks.filter((t) => t.status === 'TODO').length
+    return {
+      activeProjectList,
+      openTasks,
+      overdueTasks,
+      openIssues,
+      todoTasks,
+      inProgressTasks,
+      completedTasks,
+    }
+  }, [projects, tasks, issues])
 
-  const openIssues = issues.filter((i) => i.status === 'OPEN').length
-  const criticalIssues = issues.filter((i) => i.severity === 'CRITICAL' && i.status !== 'CLOSED').length
+  const upcomingDeadlines = useMemo(() => {
+    const today = startOfDay(new Date())
+    return tasks
+      .filter((t) => t.status !== 'COMPLETED' && t.dueDate)
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .slice(0, 6)
+      .map((t) => ({
+        ...t,
+        isOverdue: startOfDay(t.dueDate) < today,
+      }))
+  }, [tasks])
 
-  const taskStatusChartData = [
-    { name: 'To Do', value: pendingTasks, color: '#94a3b8' },
-    { name: 'In Progress', value: inProgressTasks, color: '#f59e0b' },
-    { name: 'Completed', value: completedTasks, color: '#10b981' },
-  ]
+  const recentTasks = useMemo(
+    () =>
+      [...tasks]
+        .filter((t) => t.dueDate || t.status !== 'COMPLETED')
+        .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
+        .slice(0, 5),
+    [tasks],
+  )
 
-  // Upcoming deadlines (next tasks due)
-  const upcomingTasks = [...tasks]
-    .filter((t) => t.status !== 'COMPLETED' && t.dueDate)
-    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-    .slice(0, 5)
+  const recentActivity = useMemo(
+    () => buildRecentActivity(tasks, issues, projects),
+    [tasks, issues, projects],
+  )
 
-  const isManager = user?.role === 'PROJECT_MANAGER'
+  const chartData = useMemo(
+    () => [
+      { name: 'To do', value: metrics.todoTasks, fill: '#94a3b8' },
+      { name: 'In progress', value: metrics.inProgressTasks, fill: '#f59e0b' },
+      { name: 'Completed', value: metrics.completedTasks, fill: '#4658d6' },
+    ],
+    [metrics],
+  )
+
+  const canManage = user?.role === 'PROJECT_MANAGER'
+  const greeting = greetingForHour(new Date().getHours())
+  const firstName = user?.name?.split(' ')[0] || 'there'
+
+  const workspaceSummary = `${projects.length} project${projects.length === 1 ? '' : 's'} · ${metrics.openTasks.length} open task${metrics.openTasks.length === 1 ? '' : 's'} · ${metrics.openIssues.length} open issue${metrics.openIssues.length === 1 ? '' : 's'}`
+
+  if (loading) {
+    return <LoadingState message="Loading dashboard..." />
+  }
+
+  if (error && !projects.length && !tasks.length && !issues.length) {
+    return <ErrorState message={error} onRetry={loadDashboard} />
+  }
+
+  const displayProjects =
+    metrics.activeProjectList.length > 0
+      ? metrics.activeProjectList.slice(0, 5)
+      : projects.slice(0, 5)
 
   return (
-    <div>
+    <div className="dashboard-page">
       <PageHeader
-        eyebrow="Organisation Overview"
-        title={`Welcome back, ${user?.name || 'Collaborator'}`}
-        description="Here is the real-time operational health across all your active initiatives."
+        eyebrow="Workspace overview"
+        title={`${greeting}, ${firstName}`}
+        description={workspaceSummary}
         actions={
-          <div style={{ display: 'flex', gap: 10 }}>
-            {isManager && (
+          <div className="dashboard-header-actions">
+            {canManage && (
               <Button icon={Plus} onClick={() => navigate('/projects/new')}>
-                New Project
+                Create project
               </Button>
             )}
-            <Button variant="secondary" icon={CheckSquare} onClick={() => navigate('/tasks/new')}>
-              Add Task
-            </Button>
           </div>
         }
       />
 
-      {/* Top Metric Cards */}
-      <div className="stat-grid">
-        <StatCard
-          label="Total Projects"
-          value={totalProjects}
-          subtext={`${activeProjects} active, ${completedProjects} completed`}
-          icon={FolderKanban}
-          iconColor="#4f46e5"
-          iconBg="#eef2ff"
-          trend="up"
-        />
-        <StatCard
-          label="Tasks Completed"
-          value={`${completedTasks}/${totalTasks}`}
-          subtext={`${totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0}% delivery rate`}
-          icon={CheckSquare}
-          iconColor="#10b981"
-          iconBg="#ecfdf5"
-          trend="up"
-        />
-        <StatCard
-          label="In-Progress Work"
-          value={inProgressTasks}
-          subtext={`${pendingTasks} waiting in backlog`}
-          icon={Clock}
-          iconColor="#f59e0b"
-          iconBg="#fffbeb"
-        />
-        <StatCard
-          label="Open Issues"
-          value={openIssues}
-          subtext={criticalIssues > 0 ? `${criticalIssues} critical blockers` : 'No critical blockers'}
-          icon={AlertCircle}
-          iconColor="#ef4444"
-          iconBg="#fef2f2"
-        />
+      {error && (
+        <div className="form-error dashboard-banner-error">
+          <CircleAlert size={16} />
+          {error}
+        </div>
+      )}
+
+      <div className="dashboard-quick-actions">
+        {canManage && (
+          <Button icon={FolderKanban} variant="secondary" onClick={() => navigate('/projects/new')}>
+            Create project
+          </Button>
+        )}
+        {canManage && (
+          <Button icon={ClipboardList} variant="secondary" onClick={() => navigate('/tasks/new')}>
+            Create task
+          </Button>
+        )}
+        <Button icon={CircleAlert} variant="secondary" onClick={() => navigate('/issues/new')}>
+          Report issue
+        </Button>
       </div>
 
-      {/* Main Grid: Projects & Chart */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20, marginBottom: 24 }}>
-        {/* Active Projects Momentum */}
-        <Card>
-          <div className="card-header">
-            <div>
-              <h3 className="card-title">Project Progress</h3>
-              <p className="card-subtitle">Active delivery streams and target completion</p>
-            </div>
-            <Link to="/projects" style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              View all <ArrowRight size={14} />
-            </Link>
+      <div className="stat-grid dashboard-stat-grid">
+        <Card className="stat-card">
+          <div className="stat-icon stat-0">
+            <FolderKanban size={18} />
           </div>
+          <span>Total projects</span>
+          <strong>{projects.length}</strong>
+          <small>{metrics.activeProjectList.length} active now</small>
+        </Card>
+        <Card className="stat-card">
+          <div className="stat-icon stat-1">
+            <Activity size={18} />
+          </div>
+          <span>Active projects</span>
+          <strong>{metrics.activeProjectList.length}</strong>
+          <small>{projects.filter((p) => p.status === 'PLANNED').length} planned</small>
+        </Card>
+        <Card className="stat-card">
+          <div className="stat-icon">
+            <ClipboardList size={18} />
+          </div>
+          <span>Tasks</span>
+          <strong>{tasks.length}</strong>
+          <small>
+            {metrics.openTasks.length} open · {metrics.completedTasks} done
+          </small>
+        </Card>
+        <Card className="stat-card">
+          <div className="stat-icon stat-3">
+            <CalendarDays size={18} />
+          </div>
+          <span>Overdue tasks</span>
+          <strong>{metrics.overdueTasks.length}</strong>
+          <small>{metrics.overdueTasks.length ? 'Needs attention' : 'All on schedule'}</small>
+        </Card>
+      </div>
 
-          {projects.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No active projects found.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {projects.slice(0, 4).map((p) => {
-                const projTasks = tasks.filter((t) => t.project?._id === p._id || t.project === p._id)
-                const projCompleted = projTasks.filter((t) => t.status === 'COMPLETED').length
-                const pct = projTasks.length ? Math.round((projCompleted / projTasks.length) * 100) : (p.progress || (p.status === 'COMPLETED' ? 100 : 25))
+      <div className="dashboard-layout">
+        <div className="dashboard-column dashboard-column-main">
+          <Card className="dashboard-section-card">
+            <div className="section-heading">
+              <div>
+                <h2>Active projects</h2>
+                <p>Status, progress, and deadlines from your workspace.</p>
+              </div>
+              <Link to="/projects">
+                View all <ArrowRight size={15} />
+              </Link>
+            </div>
+            {displayProjects.length === 0 ? (
+              <EmptyState
+                title="No projects yet"
+                description="Create a project to start tracking delivery."
+                action={
+                  canManage && (
+                    <Button icon={Plus} onClick={() => navigate('/projects/new')}>
+                      Create project
+                    </Button>
+                  )
+                }
+              />
+            ) : (
+              <div className="dashboard-project-list">
+                {displayProjects.map((project) => {
+                  const progress = projectProgressPercent(project, tasks)
+                  return (
+                    <Link to={`/projects/${project._id}`} className="dashboard-project-row" key={project._id}>
+                      <div className="project-avatar">{project.name?.[0] || 'P'}</div>
+                      <div className="dashboard-project-body">
+                        <div className="dashboard-project-top">
+                          <strong>{project.name}</strong>
+                          <Badge tone={project.status}>{project.status}</Badge>
+                        </div>
+                        <ProgressBar value={progress} />
+                        <div className="dashboard-project-meta">
+                          <span>{progress}% complete</span>
+                          <span>{taskSummaryForProject(project, tasks)}</span>
+                          <span>
+                            <CalendarDays size={13} />
+                            {project.deadline
+                              ? new Date(project.deadline).toLocaleDateString()
+                              : 'No deadline'}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
 
-                return (
-                  <div key={p._id} style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <Link to={`/projects/${p._id}`} style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
-                        {p.name}
+          <Card className="dashboard-section-card">
+            <div className="section-heading">
+              <div>
+                <h2>Task workload</h2>
+                <p>Distribution by status across all projects.</p>
+              </div>
+              <Link to="/tasks">
+                View tasks <ArrowRight size={15} />
+              </Link>
+            </div>
+            {tasks.length === 0 ? (
+              <EmptyState
+                title="No tasks yet"
+                description="Create tasks to see workload distribution."
+                action={
+                  canManage && (
+                    <Button icon={Plus} onClick={() => navigate('/tasks/new')}>
+                      Create task
+                    </Button>
+                  )
+                }
+              />
+            ) : (
+              <div className="chart-wrap dashboard-chart">
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8ebf0" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                    <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip cursor={{ fill: '#f6f8fb' }} />
+                    <Bar dataKey="value" radius={[5, 5, 0, 0]}>
+                      {chartData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        <div className="dashboard-column dashboard-column-side">
+          <Card className="dashboard-section-card">
+            <div className="section-heading">
+              <div>
+                <h2>Upcoming deadlines</h2>
+                <p>Due dates sorted nearest first.</p>
+              </div>
+              <Link to="/tasks">
+                Tasks <ArrowRight size={15} />
+              </Link>
+            </div>
+            {upcomingDeadlines.length === 0 ? (
+              <EmptyState title="No upcoming deadlines" description="Tasks with due dates will appear here." />
+            ) : (
+              <ul className="deadline-list">
+                {upcomingDeadlines.map((task) => (
+                  <li key={task._id} className={task.isOverdue ? 'deadline-item overdue' : 'deadline-item'}>
+                    <div className="deadline-date">
+                      <strong>{formatDueLabel(task.dueDate)}</strong>
+                      <small>{new Date(task.dueDate).toLocaleDateString()}</small>
+                    </div>
+                    <div className="deadline-detail">
+                      <Link to={`/tasks/${task._id}`}>{task.title}</Link>
+                      <small>{task.project?.name || 'Project'}</small>
+                    </div>
+                    <Badge tone={task.isOverdue ? 'high' : task.priority}>{task.isOverdue ? 'Overdue' : task.priority}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card className="dashboard-section-card">
+            <div className="section-heading">
+              <div>
+                <h2>Recent & upcoming tasks</h2>
+                <p>Status, priority, assignee, and due date.</p>
+              </div>
+            </div>
+            {recentTasks.length === 0 ? (
+              <EmptyState title="No tasks to show" description="Tasks will appear here once created." />
+            ) : (
+              <div className="dashboard-task-list">
+                {recentTasks.map((task) => (
+                  <div className="dashboard-task-row" key={task._id}>
+                    <span className={`task-check ${task.status === 'COMPLETED' ? 'done' : ''}`}>
+                      {task.status === 'COMPLETED' && <Check size={12} />}
+                    </span>
+                    <div className="dashboard-task-main">
+                      <Link to={`/tasks/${task._id}`}>
+                        <strong>{task.title}</strong>
                       </Link>
-                      <Badge tone={p.status}>{p.status}</Badge>
+                      <small>
+                        {task.project?.name || 'Project'}
+                        {task.dueDate ? ` · Due ${new Date(task.dueDate).toLocaleDateString()}` : ''}
+                      </small>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <ProgressBar value={pct} />
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', minWidth: 32, textAlign: 'right' }}>
-                        {pct}%
-                      </span>
+                    <div className="dashboard-task-badges">
+                      <Badge tone={task.status}>{task.status.replace('_', ' ')}</Badge>
+                      <Badge tone={task.priority}>{task.priority}</Badge>
                     </div>
+                    <span className="assignee dashboard-task-assignee">
+                      <Avatar name={task.assignedTo?.name || 'Unassigned'} size="sm" />
+                      <span>{task.assignedTo?.name || 'Unassigned'}</span>
+                    </span>
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </Card>
-
-        {/* Task Status Breakdown Chart */}
-        <Card>
-          <div className="card-header">
-            <div>
-              <h3 className="card-title">Task Distribution</h3>
-              <p className="card-subtitle">Current workflow volume by execution status</p>
-            </div>
-            <Link to="/kanban" style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              Kanban <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          <div style={{ width: '100%', height: 210 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={taskStatusChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#edf2f7" />
-                <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip
-                  cursor={{ fill: '#f1f5f9' }}
-                  contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-                />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                  {taskStatusChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
       </div>
 
-      {/* Bottom Grid: Upcoming Deadlines & Recent Issues */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
-        {/* Upcoming Deadlines */}
-        <Card>
-          <div className="card-header">
+      <div className="dashboard-grid dashboard-bottom-grid">
+        <Card className="dashboard-section-card">
+          <div className="section-heading">
             <div>
-              <h3 className="card-title">Upcoming Deadlines</h3>
-              <p className="card-subtitle">Items requiring prompt attention</p>
+              <h2>Issues needing attention</h2>
+              <p>Open blockers with severity and project context.</p>
             </div>
-            <Link to="/calendar" style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              Calendar <ArrowRight size={14} />
+            <Link to="/issues">
+              View all <ArrowRight size={15} />
             </Link>
           </div>
-
-          {upcomingTasks.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No immediate deadlines scheduled.</p>
+          {metrics.openIssues.length === 0 ? (
+            <EmptyState
+              title="No open issues"
+              description="Reported issues that need resolution will appear here."
+              action={
+                <Button variant="danger" icon={Plus} onClick={() => navigate('/issues/new')}>
+                  Report issue
+                </Button>
+              }
+            />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {upcomingTasks.map((t) => (
-                <div
-                  key={t._id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  <div style={{ minWidth: 0, flex: 1, marginRight: 12 }}>
-                    <Link to={`/tasks/${t._id}`} style={{ fontWeight: 600, fontSize: 13, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {t.title}
-                    </Link>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                      {t.project?.name || 'Project'} • Assigned to {t.assignedTo?.name || 'Unassigned'}
-                    </span>
+            <div className="activity-list">
+              {metrics.openIssues.slice(0, 5).map((issue) => (
+                <Link to={`/issues/${issue._id}`} className="activity-row dashboard-issue-row" key={issue._id}>
+                  <span className="issue-marker">
+                    <CircleAlert size={15} />
+                  </span>
+                  <div>
+                    <strong>{issue.title}</strong>
+                    <small>
+                      {issue.project?.name || 'Project'}
+                      {issue.task?.title ? ` · ${issue.task.title}` : ''}
+                      {' · '}
+                      {issue.status.replace('_', ' ')}
+                    </small>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <Badge tone={t.priority}>{t.priority}</Badge>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                      {new Date(t.dueDate).toLocaleDateString()}
-                    </span>
+                  <div className="dashboard-issue-badges">
+                    <Badge tone={issue.severity}>{issue.severity}</Badge>
+                    <Badge tone={issue.status}>{issue.status.replace('_', ' ')}</Badge>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
         </Card>
 
-        {/* Open Blockers & Issues */}
-        <Card>
-          <div className="card-header">
+        <Card className="dashboard-section-card">
+          <div className="section-heading">
             <div>
-              <h3 className="card-title">Blockers & Issues</h3>
-              <p className="card-subtitle">Tracked anomalies affecting sprints</p>
+              <h2>Recent activity</h2>
+              <p>Latest updates from projects, tasks, and issues.</p>
             </div>
-            <Link to="/issues" style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              View all <ArrowRight size={14} />
-            </Link>
           </div>
-
-          {issues.length === 0 ? (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>All issues resolved! Workspace is clean.</p>
+          {recentActivity.length === 0 ? (
+            <EmptyState
+              title="No recent activity"
+              description="Updates will appear here when projects, tasks, or issues change."
+            />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {issues.slice(0, 5).map((iss) => (
-                <div
-                  key={iss._id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  <div style={{ minWidth: 0, flex: 1, marginRight: 12 }}>
-                    <Link to={`/issues/${iss._id}`} style={{ fontWeight: 600, fontSize: 13, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {iss.title}
-                    </Link>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                      {iss.project?.name || 'Project'} • Reported by {iss.reportedBy?.name || 'Member'}
-                    </span>
+            <ul className="activity-feed">
+              {recentActivity.map((event) => (
+                <li key={event.id} className={`activity-feed-item activity-${event.tone}`}>
+                  <div className="activity-feed-dot" aria-hidden />
+                  <div className="activity-feed-body">
+                    <span className="activity-feed-label">{event.label}</span>
+                    <Link to={event.link}>{event.title}</Link>
+                    <small>
+                      {event.meta} · {event.time.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </small>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <Badge tone={iss.severity}>{iss.severity}</Badge>
-                    <Badge tone={iss.status}>{iss.status}</Badge>
-                  </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </Card>
       </div>

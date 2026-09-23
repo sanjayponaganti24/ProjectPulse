@@ -1,31 +1,41 @@
-import { useState, useEffect } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Menu, Search, Bell, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Menu, Search, Bell } from 'lucide-react'
 import { Avatar } from './UI.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+
+const sectionLabels = {
+  dashboard: 'Dashboard',
+  projects: 'Projects',
+  tasks: 'Tasks',
+  kanban: 'Kanban',
+  team: 'Team',
+  issues: 'Issues',
+  reports: 'Reports',
+  search: 'Search',
+  profile: 'Profile',
+}
 
 export default function Topbar({ onToggleMobile }) {
   const { user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const [searchVal, setSearchVal] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const pathParts = location.pathname.split('/').filter(Boolean)
-  const currentSection = pathParts[0] ? pathParts[0].charAt(0).toUpperCase() + pathParts[0].slice(1) : 'Dashboard'
+  const segment = location.pathname.split('/').filter(Boolean)[0] || 'dashboard'
+  const sectionTitle = sectionLabels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1)
 
-  function handleSearchSubmit(e) {
-    if (e.key === 'Enter' && searchVal.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchVal.trim())}`)
+  function handleGlobalSearch(event) {
+    if (event.key === 'Enter' && searchTerm.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`)
     }
   }
 
-  // Keyboard shortcut ⌘K / Ctrl+K to focus search
   useEffect(() => {
     function handleKeyDown(e) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        const input = document.getElementById('global-search-input')
-        if (input) input.focus()
+        document.getElementById('global-search-input')?.focus()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -35,38 +45,35 @@ export default function Topbar({ onToggleMobile }) {
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <button className="mobile-nav-toggle" onClick={onToggleMobile} title="Open menu">
+        <button type="button" className="mobile-menu" onClick={onToggleMobile} aria-label="Open menu">
           <Menu size={20} />
         </button>
-        <div className="topbar-breadcrumbs">
+        <div className="topbar-context">
           <span>Workspace</span>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-active">{currentSection}</span>
+          <strong>{sectionTitle}</strong>
         </div>
       </div>
 
-      <div className="topbar-right">
-        <div className="topbar-search">
-          <Search size={14} color="var(--text-light)" />
+      <div className="topbar-actions">
+        <label className="global-search" htmlFor="global-search-input">
+          <Search size={17} />
           <input
             id="global-search-input"
-            type="text"
-            placeholder="Search everything..."
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-            onKeyDown={handleSearchSubmit}
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            onKeyDown={handleGlobalSearch}
+            placeholder="Search anything..."
+            autoComplete="off"
           />
-          <span className="search-kbd">⌘K</span>
-        </div>
-
-        <Link to="/notifications" className="icon-action-btn" title="Notifications">
-          <Bell size={16} />
-          <span className="notification-dot" />
-        </Link>
-
-        <Link to="/profile" style={{ display: 'flex', alignItems: 'center' }}>
-          <Avatar name={user?.name || 'User'} avatar={user?.avatar} size="sm" />
-        </Link>
+          <kbd>Ctrl K</kbd>
+        </label>
+        <button type="button" className="icon-button" title="Notifications" aria-label="Notifications">
+          <Bell size={19} />
+          <i aria-hidden />
+        </button>
+        <NavLink to="/profile" className="topbar-avatar" title="Profile">
+          <Avatar name={user?.name || 'User'} size="sm" />
+        </NavLink>
       </div>
     </header>
   )
