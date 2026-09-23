@@ -8,7 +8,9 @@ const projectSchema = new mongoose.Schema(
     deadline: { type: Date, required: true },
     status: { type: String, enum: ['PLANNED', 'ACTIVE', 'COMPLETED'], default: 'PLANNED' },
     manager: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    teamLead: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    stakeholders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: true },
 )

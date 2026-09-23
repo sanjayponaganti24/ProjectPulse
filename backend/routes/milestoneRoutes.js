@@ -40,9 +40,9 @@ router.use(protect)
 
 router.get('/', query('project').optional().isMongoId().withMessage('A valid project ID is required.'), validateRequest, listMilestones)
 router.get('/:id', getMilestone)
-router.post('/', authorizeRoles('PROJECT_MANAGER'), createValidation, validateRequest, createMilestone)
+router.post('/', authorizeRoles('ORGANISATION_ADMIN', 'PROJECT_MANAGER'), createValidation, validateRequest, createMilestone)
 router.put('/:id', commonValidation, validateRequest, updateMilestone)
 router.patch('/:id', commonValidation, validateRequest, updateMilestone)
-router.delete('/:id', authorizeRoles('PROJECT_MANAGER'), deleteMilestone)
+router.delete('/:id', authorizeRoles('ORGANISATION_ADMIN', 'PROJECT_MANAGER'), deleteMilestone)
 
 export default router

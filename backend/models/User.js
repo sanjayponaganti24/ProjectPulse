@@ -24,9 +24,20 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['PROJECT_MANAGER', 'MEMBER'],
+      enum: [
+        'ORGANISATION_ADMIN',
+        'PROJECT_MANAGER',
+        'TEAM_LEAD',
+        'MEMBER',
+        'STAKEHOLDER',
+      ],
       required: true,
       default: 'MEMBER',
+    },
+    organisation: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organisation',
+      default: null,
     },
     avatar: {
       type: String,

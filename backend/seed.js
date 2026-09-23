@@ -8,6 +8,7 @@ import Project from './models/Project.js'
 import Task from './models/Task.js'
 import Issue from './models/Issue.js'
 import Milestone from './models/Milestone.js'
+import Organisation from './models/Organisation.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.join(__dirname, '.env') })
@@ -17,6 +18,7 @@ async function seed() {
     await connectDB()
     await Promise.all([
       User.init(),
+      Organisation.init(),
       Project.init(),
       Task.init(),
       Issue.init(),

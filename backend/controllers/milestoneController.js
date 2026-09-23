@@ -8,16 +8,19 @@ function validId(value) {
   return mongoose.Types.ObjectId.isValid(value)
 }
 
-function sendInvalidId(res) {
-  res.status(400).json({ success: false, message: 'A valid milestone or project ID is required.' })
-}
-
-function isManager(project, user) {
-  return project.manager.toString() === user._id.toString()
+function isAuthorizedPMOrAdmin(project, user) {
+  if (user.role === 'ORGANISATION_ADMIN') return true
+  return project.manager && project.manager.toString() === user._id.toString()
 }
 
 function canView(project, user) {
-  return isManager(project, user) || project.members.some((member) => member.toString() === user._id.toString())
+  if (user.role === 'ORGANISATION_ADMIN') return true
+  if (isAuthorizedPMOrAdmin(project, user)) return true
+  const userId = user._id.toString()
+  if (project.teamLead && project.teamLead.toString() === userId) return true
+  if (project.members && project.members.some((m) => m.toString() === userId)) return true
+  if (project.stakeholders && project.stakeholders.some((s) => s.toString() === userId)) return true
+  return false
 }
 
 async function loadProject(projectId, res) {
@@ -25,7 +28,7 @@ async function loadProject(projectId, res) {
     res.status(400).json({ success: false, message: 'A valid project ID is required.' })
     return null
   }
-  const project = await Project.findById(projectId).select('manager members')
+  const project = await Project.findById(projectId).select('manager teamLead members stakeholders')
   if (!project) {
     res.status(404).json({ success: false, message: 'Project not found.' })
     return null
@@ -88,8 +91,11 @@ export async function createMilestone(req, res, next) {
   try {
     const project = await loadProject(req.body.project, res)
     if (!project) return
-    if (!isManager(project, req.user)) {
-      res.status(403).json({ success: false, message: 'Only the project manager can create milestones.' })
+    if (!isAuthorizedPMOrAdmin(project, req.user)) {
+      res.status(403).json({
+        success: false,
+        message: 'Only the project manager or organisation admin can create milestones.',
+      })
       return
     }
     const milestone = await Milestone.create({
@@ -112,8 +118,11 @@ export async function updateMilestone(req, res, next) {
     if (!milestone) return
     const project = await loadProject(milestone.project, res)
     if (!project) return
-    if (!isManager(project, req.user)) {
-      res.status(403).json({ success: false, message: 'Only the project manager can edit milestones.' })
+    if (!isAuthorizedPMOrAdmin(project, req.user)) {
+      res.status(403).json({
+        success: false,
+        message: 'Only the project manager or organisation admin can edit milestones.',
+      })
       return
     }
     const allowed = ['name', 'description', 'dueDate', 'status']
@@ -133,8 +142,11 @@ export async function deleteMilestone(req, res, next) {
     if (!milestone) return
     const project = await loadProject(milestone.project, res)
     if (!project) return
-    if (!isManager(project, req.user)) {
-      res.status(403).json({ success: false, message: 'Only the project manager can delete milestones.' })
+    if (!isAuthorizedPMOrAdmin(project, req.user)) {
+      res.status(403).json({
+        success: false,
+        message: 'Only the project manager or organisation admin can delete milestones.',
+      })
       return
     }
     await milestone.deleteOne()

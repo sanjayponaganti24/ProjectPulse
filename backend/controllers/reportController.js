@@ -3,9 +3,18 @@ import Task from '../models/Task.js'
 import Issue from '../models/Issue.js'
 
 async function getAccessibleProjectIds(user) {
-  const filter = user.role === 'PROJECT_MANAGER'
-    ? { manager: user._id }
-    : { members: user._id }
+  if (user.role === 'ORGANISATION_ADMIN') {
+    const all = await Project.find({}).select('_id')
+    return all.map((p) => p._id)
+  }
+  const filter = {
+    $or: [
+      { manager: user._id },
+      { teamLead: user._id },
+      { members: user._id },
+      { stakeholders: user._id },
+    ],
+  }
   const projects = await Project.find(filter).select('_id')
   return projects.map((project) => project._id)
 }

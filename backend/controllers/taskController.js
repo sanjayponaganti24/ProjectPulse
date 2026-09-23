@@ -5,7 +5,7 @@ import User from '../models/User.js'
 
 const userFields = 'name email role avatar'
 const taskPopulate = [
-  { path: 'project', select: 'name manager members' },
+  { path: 'project', select: 'name manager teamLead members stakeholders' },
   { path: 'assignedTo', select: userFields },
   { path: 'createdBy', select: userFields },
 ]
@@ -15,12 +15,21 @@ function validId(value) {
 }
 
 function canView(project, user) {
-  return project.manager.toString() === user._id.toString()
-    || project.members.some((member) => member.toString() === user._id.toString())
+  if (user.role === 'ORGANISATION_ADMIN') return true
+  const userId = user._id.toString()
+  if (project.manager && project.manager.toString() === userId) return true
+  if (project.teamLead && project.teamLead.toString() === userId) return true
+  if (project.members && project.members.some((m) => m.toString() === userId)) return true
+  if (project.stakeholders && project.stakeholders.some((s) => s.toString() === userId)) return true
+  return false
 }
 
-function isManager(project, user) {
-  return project.manager.toString() === user._id.toString()
+function canManageTasks(project, user) {
+  if (user.role === 'ORGANISATION_ADMIN') return true
+  const userId = user._id.toString()
+  if (project.manager && project.manager.toString() === userId) return true
+  if (project.teamLead && project.teamLead.toString() === userId) return true
+  return false
 }
 
 async function loadProject(projectId, res) {
@@ -28,7 +37,7 @@ async function loadProject(projectId, res) {
     res.status(400).json({ success: false, message: 'A valid project ID is required.' })
     return null
   }
-  const project = await Project.findById(projectId).select('manager members')
+  const project = await Project.findById(projectId).select('manager teamLead members stakeholders')
   if (!project) {
     res.status(404).json({ success: false, message: 'Project not found.' })
     return null
@@ -41,9 +50,32 @@ async function validateAssignee(project, assignedTo, res) {
     res.status(400).json({ success: false, message: 'A valid assigned user ID is required.' })
     return null
   }
-  const user = await User.findOne({ $and: [{ _id: assignedTo }, { _id: { $in: project.members } }] }).select('_id')
-  if (!user) {
+
+  const assignedIdStr = assignedTo.toString()
+
+  // Stakeholders cannot be assigned tasks
+  if (project.stakeholders && project.stakeholders.some((s) => s.toString() === assignedIdStr)) {
+    res.status(400).json({
+      success: false,
+      message: 'Stakeholders have read-only visibility and cannot be assigned tasks.',
+    })
+    return null
+  }
+
+  // Must belong to members, teamLead, or manager
+  const isMember = project.members && project.members.some((m) => m.toString() === assignedIdStr)
+  const isTeamLead = project.teamLead && project.teamLead.toString() === assignedIdStr
+  const isManager = project.manager && project.manager.toString() === assignedIdStr
+
+  if (!isMember && !isTeamLead && !isManager) {
     res.status(400).json({ success: false, message: 'Assigned user must belong to the project.' })
+    return null
+  }
+
+  const user = await User.findById(assignedTo).select('_id')
+  if (!user) {
+    res.status(400).json({ success: false, message: 'Assigned user not found.' })
+    return null
   }
   return user
 }
@@ -61,15 +93,21 @@ async function loadTask(req, res) {
   return task
 }
 
-function accessibleFilter(user) {
-  if (user.role === 'PROJECT_MANAGER') return { project: { $in: user._projectIds } }
-  return { $or: [{ assignedTo: user._id }, { project: { $in: user._projectIds } }] }
-}
-
-async function projectIdsForMember(user) {
-  const filter = user.role === 'PROJECT_MANAGER' ? { manager: user._id } : { members: user._id }
+async function projectIdsForUser(user) {
+  if (user.role === 'ORGANISATION_ADMIN') {
+    const all = await Project.find({}).select('_id')
+    return all.map((p) => p._id)
+  }
+  const filter = {
+    $or: [
+      { manager: user._id },
+      { teamLead: user._id },
+      { members: user._id },
+      { stakeholders: user._id },
+    ],
+  }
   const projects = await Project.find(filter).select('_id')
-  return projects.map((project) => project._id)
+  return projects.map((p) => p._id)
 }
 
 async function sendTask(res, task, status = 200) {
@@ -79,8 +117,12 @@ async function sendTask(res, task, status = 200) {
 
 export async function listTasks(req, res, next) {
   try {
-    req.user._projectIds = await projectIdsForMember(req.user)
-    const filter = accessibleFilter(req.user)
+    const projectIds = await projectIdsForUser(req.user)
+    const filter =
+      req.user.role === 'ORGANISATION_ADMIN' || req.user.role === 'PROJECT_MANAGER'
+        ? { project: { $in: projectIds } }
+        : { $or: [{ assignedTo: req.user._id }, { project: { $in: projectIds } }] }
+
     if (req.query.project) {
       if (!validId(req.query.project)) {
         res.status(400).json({ success: false, message: 'A valid project ID is required.' })
@@ -90,6 +132,7 @@ export async function listTasks(req, res, next) {
     }
     if (req.query.status) filter.status = req.query.status
     if (req.query.priority) filter.priority = req.query.priority
+
     const tasks = await Task.find(filter).populate(taskPopulate).sort({ dueDate: 1, createdAt: -1 })
     res.json({ success: true, tasks })
   } catch (error) {
@@ -103,7 +146,7 @@ export async function getTask(req, res, next) {
     if (!task) return
     const project = await loadProject(task.project, res)
     if (!project) return
-    if (!canView(project, req.user) && task.assignedTo.toString() !== req.user._id.toString()) {
+    if (!canView(project, req.user) && task.assignedTo?.toString() !== req.user._id.toString()) {
       res.status(403).json({ success: false, message: 'You do not have access to this task.' })
       return
     }
@@ -117,11 +160,15 @@ export async function createTask(req, res, next) {
   try {
     const project = await loadProject(req.body.project, res)
     if (!project) return
-    if (!isManager(project, req.user)) {
-      res.status(403).json({ success: false, message: 'Only the project manager can create tasks.' })
+    if (!canManageTasks(project, req.user)) {
+      res.status(403).json({
+        success: false,
+        message: 'Only the project manager, team lead, or organisation admin can create tasks.',
+      })
       return
     }
-    if (!await validateAssignee(project, req.body.assignedTo, res)) return
+    if (!(await validateAssignee(project, req.body.assignedTo, res))) return
+
     const task = await Task.create({ ...req.body, createdBy: req.user._id })
     await sendTask(res, task, 201)
   } catch (error) {
@@ -135,27 +182,48 @@ export async function updateTask(req, res, next) {
     if (!task) return
     const project = await loadProject(task.project, res)
     if (!project) return
-    const manager = isManager(project, req.user)
-    const ownTask = task.assignedTo.toString() === req.user._id.toString()
-    if (!manager && (!ownTask || Object.keys(req.body).some((field) => field !== 'status'))) {
-      res.status(403).json({ success: false, message: 'Members may only update the status of tasks assigned to them.' })
+
+    const isTaskLeadOrManager = canManageTasks(project, req.user)
+    const isAssignee = task.assignedTo?.toString() === req.user._id.toString()
+
+    // Stakeholders cannot update anything
+    if (req.user.role === 'STAKEHOLDER') {
+      res.status(403).json({ success: false, message: 'Stakeholders have read-only access.' })
       return
     }
+
+    if (!isTaskLeadOrManager && (!isAssignee || Object.keys(req.body).some((f) => f !== 'status'))) {
+      res.status(403).json({
+        success: false,
+        message: 'Members may only update the status of tasks assigned to them.',
+      })
+      return
+    }
+
     let assignmentProject = project
     if (req.body.project && req.body.project.toString() !== task.project.toString()) {
       const newProject = await loadProject(req.body.project, res)
       if (!newProject) return
-      if (!isManager(newProject, req.user)) {
-        res.status(403).json({ success: false, message: 'Only the new project manager can move a task.' })
+      if (!canManageTasks(newProject, req.user)) {
+        res.status(403).json({ success: false, message: 'Only authorized managers can move a task.' })
         return
       }
       assignmentProject = newProject
     }
-    if (manager && !await validateAssignee(assignmentProject, req.body.assignedTo || task.assignedTo, res)) return
+
+    if (
+      isTaskLeadOrManager &&
+      req.body.assignedTo &&
+      !(await validateAssignee(assignmentProject, req.body.assignedTo, res))
+    ) {
+      return
+    }
+
     const allowed = ['title', 'description', 'project', 'assignedTo', 'status', 'priority', 'dueDate']
     allowed.forEach((field) => {
       if (req.body[field] !== undefined) task[field] = req.body[field]
     })
+
     await task.save()
     await sendTask(res, task)
   } catch (error) {
@@ -169,10 +237,19 @@ export async function deleteTask(req, res, next) {
     if (!task) return
     const project = await loadProject(task.project, res)
     if (!project) return
-    if (!isManager(project, req.user)) {
-      res.status(403).json({ success: false, message: 'Only the project manager can delete tasks.' })
+
+    const isAuthorized =
+      req.user.role === 'ORGANISATION_ADMIN' ||
+      (project.manager && project.manager.toString() === req.user._id.toString())
+
+    if (!isAuthorized) {
+      res.status(403).json({
+        success: false,
+        message: 'Only the project manager or organisation admin can delete tasks.',
+      })
       return
     }
+
     await task.deleteOne()
     res.json({ success: true, message: 'Task deleted successfully.' })
   } catch (error) {

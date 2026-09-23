@@ -16,14 +16,22 @@ import {
 import { Avatar } from './UI.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/projects', label: 'Projects', icon: FolderKanban },
-  { to: '/tasks', label: 'Tasks', icon: ClipboardList },
-  { to: '/kanban', label: 'Kanban', icon: Target },
-  { to: '/team', label: 'Team', icon: Users },
-  { to: '/issues', label: 'Issues', icon: CircleAlert },
-  { to: '/reports', label: 'Reports', icon: Activity },
+export const ROLE_LABELS = {
+  ORGANISATION_ADMIN: 'Organisation Admin',
+  PROJECT_MANAGER: 'Project Manager',
+  TEAM_LEAD: 'Team Lead',
+  MEMBER: 'Developer / Member',
+  STAKEHOLDER: 'Stakeholder',
+}
+
+const allNavItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER', 'STAKEHOLDER'] },
+  { to: '/projects', label: 'Projects', icon: FolderKanban, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER', 'STAKEHOLDER'] },
+  { to: '/tasks', label: 'Tasks', icon: ClipboardList, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER'] },
+  { to: '/kanban', label: 'Kanban', icon: Target, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER'] },
+  { to: '/team', label: 'Team', icon: Users, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD'] },
+  { to: '/issues', label: 'Issues', icon: CircleAlert, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER'] },
+  { to: '/reports', label: 'Reports', icon: Activity, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'STAKEHOLDER'] },
 ]
 
 export default function Sidebar({ mobileOpen, onCloseMobile }) {
@@ -39,7 +47,8 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
     }
   }
 
-  const roleLabel = user?.role === 'PROJECT_MANAGER' ? 'Project manager' : 'Member'
+  const roleLabel = ROLE_LABELS[user?.role] || user?.role || 'Member'
+  const navItems = allNavItems.filter((item) => !item.roles || item.roles.includes(user?.role || 'MEMBER'))
 
   return (
     <>

@@ -13,7 +13,7 @@ import { protect } from '../middleware/authMiddleware.js'
 import { authorizeRoles } from '../middleware/roleMiddleware.js'
 
 const router = Router()
-const managerOnly = [protect, authorizeRoles('PROJECT_MANAGER')]
+const projectCreators = [protect, authorizeRoles('ORGANISATION_ADMIN', 'PROJECT_MANAGER')]
 
 function validateRequest(req, res, next) {
   const errors = validationResult(req)
@@ -40,11 +40,11 @@ const updateValidation = [
 
 router.use(protect)
 router.get('/', listProjects)
-router.post('/', ...managerOnly.slice(1), createValidation, validateRequest, createProject)
+router.post('/', ...projectCreators.slice(1), createValidation, validateRequest, createProject)
 router.get('/:id', getProject)
-router.put('/:id', ...managerOnly.slice(1), updateValidation, validateRequest, updateProject)
-router.delete('/:id', ...managerOnly.slice(1), deleteProject)
-router.post('/:id/members', ...managerOnly.slice(1), addMember)
-router.delete('/:id/members/:memberId', ...managerOnly.slice(1), removeMember)
+router.put('/:id', updateValidation, validateRequest, updateProject)
+router.delete('/:id', deleteProject)
+router.post('/:id/members', addMember)
+router.delete('/:id/members/:memberId', removeMember)
 
 export default router

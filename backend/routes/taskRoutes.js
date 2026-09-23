@@ -34,11 +34,28 @@ const createValidation = [
 ]
 
 router.use(protect)
-router.get('/', query('project').optional().isMongoId().withMessage('A valid project ID is required.'), query('status').optional().isIn(['TODO', 'IN_PROGRESS', 'COMPLETED']).withMessage('Invalid task status.'), query('priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH']).withMessage('Invalid task priority.'), validateRequest, listTasks)
+router.get(
+  '/',
+  query('project').optional().isMongoId().withMessage('A valid project ID is required.'),
+  query('status').optional().isIn(['TODO', 'IN_PROGRESS', 'COMPLETED']).withMessage('Invalid task status.'),
+  query('priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH']).withMessage('Invalid task priority.'),
+  validateRequest,
+  listTasks,
+)
 router.get('/:id', getTask)
-router.post('/', authorizeRoles('PROJECT_MANAGER'), createValidation, validateRequest, createTask)
+router.post(
+  '/',
+  authorizeRoles('ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD'),
+  createValidation,
+  validateRequest,
+  createTask,
+)
 router.put('/:id', commonValidation, validateRequest, updateTask)
 router.patch('/:id', commonValidation, validateRequest, updateTask)
-router.delete('/:id', authorizeRoles('PROJECT_MANAGER'), deleteTask)
+router.delete(
+  '/:id',
+  authorizeRoles('ORGANISATION_ADMIN', 'PROJECT_MANAGER'),
+  deleteTask,
+)
 
 export default router
