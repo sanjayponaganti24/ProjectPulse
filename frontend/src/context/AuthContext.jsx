@@ -22,7 +22,10 @@ export function AuthProvider({ children }) {
 
   async function register(details) {
     const response = await api.post('/api/auth/register', details)
-    return response.data.user
+    if (response.data.user && response.data.user.role === 'ORGANISATION_ADMIN') {
+      setUser(response.data.user)
+    }
+    return response.data
   }
 
   async function logout() {

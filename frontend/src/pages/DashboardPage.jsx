@@ -218,7 +218,13 @@ export default function DashboardPage() {
     [metrics],
   )
 
-  const canManage = user?.role === 'PROJECT_MANAGER'
+  const isOrgAdmin = user?.role === 'ORGANISATION_ADMIN'
+  const isPM = user?.role === 'PROJECT_MANAGER'
+  const isTeamLead = user?.role === 'TEAM_LEAD'
+  const isMember = user?.role === 'MEMBER'
+  const isStakeholder = user?.role === 'STAKEHOLDER'
+  const canManage = isOrgAdmin || isPM
+
   const greeting = greetingForHour(new Date().getHours())
   const firstName = user?.name?.split(' ')[0] || 'there'
 
@@ -250,6 +256,21 @@ export default function DashboardPage() {
                 Create project
               </Button>
             )}
+            {isTeamLead && (
+              <Button icon={Plus} onClick={() => navigate('/tasks/new')}>
+                Create task
+              </Button>
+            )}
+            {isMember && (
+              <Button icon={CircleAlert} variant="secondary" onClick={() => navigate('/issues/new')}>
+                Report issue
+              </Button>
+            )}
+            {isStakeholder && (
+              <Button icon={Activity} variant="secondary" onClick={() => navigate('/reports')}>
+                View reports
+              </Button>
+            )}
           </div>
         }
       />
@@ -267,14 +288,31 @@ export default function DashboardPage() {
             Create project
           </Button>
         )}
-        {canManage && (
+        {(canManage || isTeamLead) && (
           <Button icon={ClipboardList} variant="secondary" onClick={() => navigate('/tasks/new')}>
             Create task
           </Button>
         )}
-        <Button icon={CircleAlert} variant="secondary" onClick={() => navigate('/issues/new')}>
-          Report issue
-        </Button>
+        {!isStakeholder && (
+          <Button icon={CircleAlert} variant="secondary" onClick={() => navigate('/issues/new')}>
+            Report issue
+          </Button>
+        )}
+        {isOrgAdmin && (
+          <Button icon={FolderKanban} variant="secondary" onClick={() => navigate('/team')}>
+            Manage team & roles
+          </Button>
+        )}
+        {(isOrgAdmin || isPM || isStakeholder) && (
+          <Button icon={Activity} variant="secondary" onClick={() => navigate('/reports')}>
+            View reports
+          </Button>
+        )}
+        {isStakeholder && (
+          <Button icon={CalendarDays} variant="secondary" onClick={() => navigate('/milestones')}>
+            Milestones
+          </Button>
+        )}
       </div>
 
       <div className="stat-grid dashboard-stat-grid">

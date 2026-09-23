@@ -24,15 +24,57 @@ export const ROLE_LABELS = {
   STAKEHOLDER: 'Stakeholder',
 }
 
-const allNavItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER', 'STAKEHOLDER'] },
-  { to: '/projects', label: 'Projects', icon: FolderKanban, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER', 'STAKEHOLDER'] },
-  { to: '/tasks', label: 'Tasks', icon: ClipboardList, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER'] },
-  { to: '/kanban', label: 'Kanban', icon: Target, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER'] },
-  { to: '/team', label: 'Team', icon: Users, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD'] },
-  { to: '/issues', label: 'Issues', icon: CircleAlert, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD', 'MEMBER'] },
-  { to: '/reports', label: 'Reports', icon: Activity, roles: ['ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'STAKEHOLDER'] },
-]
+export function getNavItemsForRole(role) {
+  switch (role) {
+    case 'ORGANISATION_ADMIN':
+      return [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/projects', label: 'Projects', icon: FolderKanban },
+        { to: '/team', label: 'Team & Roles', icon: Users },
+        { to: '/reports', label: 'Reports', icon: Activity },
+      ]
+    case 'PROJECT_MANAGER':
+      return [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/projects', label: 'Projects', icon: FolderKanban },
+        { to: '/tasks', label: 'Tasks', icon: ClipboardList },
+        { to: '/kanban', label: 'Kanban', icon: Target },
+        { to: '/team', label: 'Team', icon: Users },
+        { to: '/issues', label: 'Issues', icon: CircleAlert },
+        { to: '/reports', label: 'Reports', icon: Activity },
+      ]
+    case 'TEAM_LEAD':
+      return [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/projects', label: 'Projects', icon: FolderKanban },
+        { to: '/tasks', label: 'Tasks', icon: ClipboardList },
+        { to: '/kanban', label: 'Kanban', icon: Target },
+        { to: '/team', label: 'Team', icon: Users },
+        { to: '/issues', label: 'Issues', icon: CircleAlert },
+      ]
+    case 'MEMBER':
+      return [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/tasks', label: 'My Tasks', icon: ClipboardList },
+        { to: '/projects', label: 'Projects', icon: FolderKanban },
+        { to: '/kanban', label: 'Kanban', icon: Target },
+        { to: '/issues', label: 'Issues', icon: CircleAlert },
+      ]
+    case 'STAKEHOLDER':
+      return [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/projects', label: 'Projects', icon: FolderKanban },
+        { to: '/milestones', label: 'Milestones', icon: Target },
+        { to: '/reports', label: 'Reports', icon: Activity },
+      ]
+    default:
+      return [
+        { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/projects', label: 'Projects', icon: FolderKanban },
+        { to: '/tasks', label: 'Tasks', icon: ClipboardList },
+      ]
+  }
+}
 
 export default function Sidebar({ mobileOpen, onCloseMobile }) {
   const { user, logout } = useAuth()
@@ -48,7 +90,8 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
   }
 
   const roleLabel = ROLE_LABELS[user?.role] || user?.role || 'Member'
-  const navItems = allNavItems.filter((item) => !item.roles || item.roles.includes(user?.role || 'MEMBER'))
+  const navItems = getNavItemsForRole(user?.role)
+  const workspaceName = user?.organisation?.name || 'ProjectPulse Workspace'
 
   return (
     <>
@@ -78,7 +121,7 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
         <div className="workspace-switcher">
           <div className="workspace-mark">P</div>
           <div>
-            <strong>ProjectPulse workspace</strong>
+            <strong>{workspaceName}</strong>
             <small>{roleLabel}</small>
           </div>
           <ChevronDown size={15} aria-hidden />

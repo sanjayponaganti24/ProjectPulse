@@ -82,18 +82,21 @@ router.patch(
         }
       }
 
-      userToUpdate.role = req.body.role
-      await userToUpdate.save()
+      const updatedUser = await User.findByIdAndUpdate(
+        req.params.id,
+        { role: req.body.role },
+        { new: true, runValidators: true },
+      )
 
       res.json({
         success: true,
         user: {
-          id: userToUpdate._id.toString(),
-          name: userToUpdate.name,
-          email: userToUpdate.email,
-          role: userToUpdate.role,
+          id: updatedUser._id.toString(),
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
         },
-        message: `Role for ${userToUpdate.name} updated to ${userToUpdate.role}.`,
+        message: `Role for ${updatedUser.name} updated to ${updatedUser.role}.`,
       })
     } catch (error) {
       next(error)

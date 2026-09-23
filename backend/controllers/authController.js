@@ -127,6 +127,8 @@ export async function register(req, res, next) {
       organisation: organisation ? organisation._id : null,
     })
 
+    setAuthCookie(res, createToken(user._id.toString()))
+
     res.status(201).json({
       success: true,
       user: getSafeUser(user),

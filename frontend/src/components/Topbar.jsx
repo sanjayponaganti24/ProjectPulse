@@ -12,6 +12,7 @@ const sectionLabels = {
   team: 'Team',
   issues: 'Issues',
   reports: 'Reports',
+  milestones: 'Milestones',
   search: 'Search',
   profile: 'Profile',
 }
