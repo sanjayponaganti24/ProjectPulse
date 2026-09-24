@@ -13,21 +13,9 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import {
-  Link,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-  useParams,
-} from "react-router-dom";
-import AppShell from "./components/AppShell.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import DashboardPage from "./pages/DashboardPage.jsx";
-import { MilestonesPage, SprintsPage } from "./pages/PlanningPages.jsx";
-import { AuthPage } from "./pages/AuthPages.jsx";
-import LandingPage from "./pages/LandingPage.jsx";
-import NotificationsPage from "./pages/NotificationsPage.jsx";
+import AppRoutes from "./app/routes.jsx";
 import { ROLE_LABELS } from "./components/Sidebar.jsx";
 import {
   Avatar,
@@ -61,14 +49,6 @@ import {
 } from "@dnd-kit/core";
 import { useAuth } from "./context/AuthContext.jsx";
 import api from "./services/api.js";
-
-function ProtectedLayout() {
-  return (
-    <ProtectedRoute>
-      <AppShell />
-    </ProtectedRoute>
-  );
-}
 
 function ProjectError({ message }) {
   return message ? (
@@ -3425,62 +3405,27 @@ function SearchPage() {
   );
 }
 
-function NotFound() {
-  return (
-    <div className="not-found">
-      <XCircle size={42} />
-      <h1>Page not found</h1>
-      <p>The page you are looking for does not exist.</p>
-      <Link to="/dashboard" className="button button-primary">
-        Back to dashboard
-      </Link>
-    </div>
-  );
-}
-
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<AuthPage mode="login" />} />
-      <Route path="/register" element={<AuthPage mode="register" />} />
-      <Route element={<ProtectedLayout />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/projects/new" element={<ProjectForm />} />
-        <Route path="/projects/:id" element={<ProjectDetailPage />} />
-        <Route path="/projects/:id/edit" element={<ProjectForm edit />} />
-        <Route path="/projects/:id/activity" element={<ProjectDetailPage />} />
-        <Route path="/projects/:id/milestones" element={<MilestonesPage />} />
-        <Route path="/projects/:id/sprints" element={<SprintsPage />} />
-        <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/tasks/new" element={<TaskForm />} />
-        <Route path="/tasks/:id" element={<TaskDetailPage />} />
-        <Route path="/tasks/:id/edit" element={<TaskForm edit />} />
-        <Route path="/kanban" element={<KanbanPage />} />
-        <Route path="/team" element={<TeamPage />} />
-        <Route
-          path="/team/new"
-          element={
-            <FormPage
-              title="Invite a member"
-              description="Bring another collaborator into your workspace."
-            />
-          }
-        />
-        <Route path="/team/:id" element={<TeamPage />} />
-        <Route path="/issues" element={<IssuesPage />} />
-        <Route path="/issues/new" element={<IssueForm />} />
-        <Route path="/issues/:id" element={<IssueDetailPage />} />
-        <Route path="/issues/:id/edit" element={<IssueForm edit />} />
-        <Route path="/milestones" element={<MilestonesPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+    <AppRoutes
+      pages={{
+        DashboardPage,
+        ProjectsPage,
+        ProjectForm,
+        ProjectDetailPage,
+        TasksPage,
+        TaskForm,
+        TaskDetailPage,
+        KanbanPage,
+        TeamPage,
+        FormPage,
+        IssuesPage,
+        IssueForm,
+        IssueDetailPage,
+        ReportsPage,
+        SearchPage,
+        ProfilePage,
+      }}
+    />
   );
 }

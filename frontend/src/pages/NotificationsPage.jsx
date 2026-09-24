@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CheckCheck } from "lucide-react";
 import {
   Button,
@@ -12,6 +13,7 @@ import NotificationItem from "../components/NotificationItem.jsx";
 import api from "../services/api.js";
 
 export default function NotificationsPage() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,7 +50,7 @@ export default function NotificationsPage() {
         // Navigation should still work if marking read fails.
       }
     }
-    if (notification.link) window.location.assign(notification.link);
+    if (notification.link) navigate(notification.link);
   }
 
   async function markAllRead() {
