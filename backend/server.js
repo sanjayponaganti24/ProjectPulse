@@ -5,6 +5,7 @@ import express from 'express'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import { connectDB } from './config/db.js'
+import { bootstrapAdmin } from './services/bootstrapAdmin.js'
 import { errorHandler, notFound } from './middleware/errorMiddleware.js'
 import authRoutes from './routes/authRoutes.js'
 import healthRoutes from './routes/healthRoutes.js'
@@ -78,6 +79,7 @@ try {
     throw new Error('JWT_SECRET is not configured. Add it to server/.env.')
   }
   await connectDB()
+  await bootstrapAdmin()
   app.listen(port, () => {
     console.log(`ProjectPulse API listening on port ${port}`)
   })
