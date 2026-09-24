@@ -26,19 +26,20 @@ async function createAdmin() {
 
     let organisation = await Organisation.findOne().sort({ createdAt: 1 })
 
-    if (!organisation) {
-      organisation = await Organisation.create({
-        name: ORGANISATION_NAME,
-      })
-
-      console.log(`Created organisation: ${organisation.name}`)
-    }
-
     const existingAdmin = await User.findOne({
       role: 'ORGANISATION_ADMIN',
     })
 
     if (existingAdmin) {
+      if (!organisation) {
+        organisation = await Organisation.create({
+          name: ORGANISATION_NAME,
+          owner: existingAdmin._id,
+        })
+        existingAdmin.organisation = organisation._id
+        await existingAdmin.save()
+        console.log(`Created organisation: ${organisation.name}`)
+      }
       console.log(`Admin already exists: ${existingAdmin.email}`)
       console.log(`Organisation: ${organisation.name}`)
       return
@@ -49,8 +50,15 @@ async function createAdmin() {
       email: ADMIN_EMAIL.toLowerCase().trim(),
       password: ADMIN_PASSWORD,
       role: 'ORGANISATION_ADMIN',
-      organisation: organisation._id,
     })
+
+    if (!organisation) {
+      organisation = await Organisation.create({
+        name: ORGANISATION_NAME,
+        owner: admin._id,
+      })
+      console.log(`Created organisation: ${organisation.name}`)
+    }
 
     organisation.owner = admin._id
     await organisation.save()

@@ -13,6 +13,11 @@ const REGISTRATION_ROLES = [
   "STAKEHOLDER",
 ];
 
+const DEFAULT_REGISTRATION_ROLES = REGISTRATION_ROLES.map((role) => ({
+  role,
+  name: ROLE_LABELS[role] || role,
+}));
+
 const ROLE_DESCRIPTIONS = {
   PROJECT_MANAGER:
     "Plan projects, manage milestones, sprints, assignments, and reports.",
@@ -43,10 +48,7 @@ export function AuthPage({ mode }) {
   });
 
   const [registrationRoles, setRegistrationRoles] = useState(
-    REGISTRATION_ROLES.map((role) => ({
-      role,
-      name: ROLE_LABELS[role] || role,
-    })),
+    DEFAULT_REGISTRATION_ROLES,
   );
 
   const [orgInfo, setOrgInfo] = useState({
@@ -54,6 +56,7 @@ export function AuthPage({ mode }) {
   });
 
   const [error, setError] = useState("");
+  const [registrationInfoError, setRegistrationInfoError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(!isLogin);
 
@@ -91,13 +94,14 @@ export function AuthPage({ mode }) {
               : roles[0].role,
           }));
         }
-      } catch (requestError) {
+      } catch {
         if (!mounted) return;
 
-        setError(
-          requestError.response?.data?.message ||
-            "Unable to load workspace registration information.",
+        setRegistrationRoles(DEFAULT_REGISTRATION_ROLES);
+        setRegistrationInfoError(
+          "Workspace details are temporarily unavailable. You can still register with a standard role.",
         );
+        setForm((previous) => ({ ...previous, role: "MEMBER" }));
       } finally {
         if (mounted) {
           setLoadingRoles(false);
@@ -265,181 +269,190 @@ export function AuthPage({ mode }) {
               Loading workspace roles...
             </p>
           ) : (
-            <form onSubmit={submit}>
-              {!isLogin && (
+            <>
+              {registrationInfoError && !isLogin && (
+                <output className="form-notice">{registrationInfoError}</output>
+              )}
+              <form onSubmit={submit}>
+                {!isLogin && (
+                  <label>
+                    Full name
+                    <input
+                      name="name"
+                      value={form.name}
+                      onChange={update}
+                      placeholder="Your full name"
+                      autoComplete="name"
+                      required
+                    />
+                  </label>
+                )}
+
                 <label>
-                  Full name
+                  Email address
                   <input
-                    name="name"
-                    value={form.name}
+                    name="email"
+                    type="email"
+                    value={form.email}
                     onChange={update}
-                    placeholder="Your full name"
-                    autoComplete="name"
+                    placeholder="you@company.com"
+                    autoComplete="email"
                     required
                   />
                 </label>
-              )}
 
-              <label>
-                Email address
-                <input
-                  name="email"
-                  type="email"
-                  value={form.email}
-                  onChange={update}
-                  placeholder="you@company.com"
-                  autoComplete="email"
-                  required
-                />
-              </label>
-
-              <label>
-                Password
-                <div style={{ position: "relative" }}>
-                  <input
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    value={form.password}
-                    onChange={update}
-                    placeholder="At least 6 characters"
-                    autoComplete={isLogin ? "current-password" : "new-password"}
-                    required
-                    style={{ paddingRight: 44 }}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                    style={{
-                      position: "absolute",
-                      top: "50%",
-                      right: 10,
-                      transform: "translateY(-50%)",
-                      border: 0,
-                      background: "transparent",
-                      color: "#667085",
-                      cursor: "pointer",
-                      display: "grid",
-                      placeItems: "center",
-                      padding: 4,
-                    }}
-                  >
-                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                  </button>
-                </div>
-              </label>
-
-              {!isLogin && (
-                <>
-                  <label>
-                    Confirm password
-                    <div style={{ position: "relative" }}>
-                      <input
-                        name="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={form.confirmPassword}
-                        onChange={update}
-                        placeholder="Repeat your password"
-                        autoComplete="new-password"
-                        required
-                        style={{ paddingRight: 44 }}
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword((value) => !value)
-                        }
-                        aria-label={
-                          showConfirmPassword
-                            ? "Hide confirm password"
-                            : "Show confirm password"
-                        }
-                        style={{
-                          position: "absolute",
-                          top: "50%",
-                          right: 10,
-                          transform: "translateY(-50%)",
-                          border: 0,
-                          background: "transparent",
-                          color: "#667085",
-                          cursor: "pointer",
-                          display: "grid",
-                          placeItems: "center",
-                          padding: 4,
-                        }}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff size={17} />
-                        ) : (
-                          <Eye size={17} />
-                        )}
-                      </button>
-                    </div>
-                  </label>
-
-                  <label>
-                    Workspace role
-                    <select
-                      name="role"
-                      value={form.role}
+                <label>
+                  Password
+                  <div style={{ position: "relative" }}>
+                    <input
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
                       onChange={update}
+                      placeholder="At least 6 characters"
+                      autoComplete={
+                        isLogin ? "current-password" : "new-password"
+                      }
                       required
-                    >
-                      {registrationRoles.map((entry) => (
-                        <option key={entry.role} value={entry.role}>
-                          {entry.name || ROLE_LABELS[entry.role] || entry.role}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      style={{ paddingRight: 44 }}
+                    />
 
-                  <div
-                    style={{
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 8,
-                      padding: "10px 12px",
-                      fontSize: 12,
-                      color: "#475569",
-                      marginBottom: 14,
-                    }}
-                  >
-                    <strong>{ROLE_LABELS[form.role] || form.role}:</strong>{" "}
-                    {ROLE_DESCRIPTIONS[form.role]}
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((value) => !value)}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                       style={{
-                        marginTop: 4,
-                        color: "#94a3b8",
-                        fontSize: 11,
+                        position: "absolute",
+                        top: "50%",
+                        right: 10,
+                        transform: "translateY(-50%)",
+                        border: 0,
+                        background: "transparent",
+                        color: "#667085",
+                        cursor: "pointer",
+                        display: "grid",
+                        placeItems: "center",
+                        padding: 4,
                       }}
                     >
-                      Organisation Admin accounts are created by the system
-                      administrator.
-                    </div>
+                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
                   </div>
-                </>
-              )}
+                </label>
 
-              {error && (
-                <div className="form-error">
-                  <XCircle size={16} />
-                  {error}
-                </div>
-              )}
+                {!isLogin && (
+                  <>
+                    <label>
+                      Confirm password
+                      <div style={{ position: "relative" }}>
+                        <input
+                          name="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={form.confirmPassword}
+                          onChange={update}
+                          placeholder="Repeat your password"
+                          autoComplete="new-password"
+                          required
+                          style={{ paddingRight: 44 }}
+                        />
 
-              <Button type="submit" disabled={submitting}>
-                {submitting
-                  ? "Please wait..."
-                  : isLogin
-                    ? "Sign in"
-                    : "Create account"}{" "}
-                <ArrowRight size={16} />
-              </Button>
-            </form>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword((value) => !value)
+                          }
+                          aria-label={
+                            showConfirmPassword
+                              ? "Hide confirm password"
+                              : "Show confirm password"
+                          }
+                          style={{
+                            position: "absolute",
+                            top: "50%",
+                            right: 10,
+                            transform: "translateY(-50%)",
+                            border: 0,
+                            background: "transparent",
+                            color: "#667085",
+                            cursor: "pointer",
+                            display: "grid",
+                            placeItems: "center",
+                            padding: 4,
+                          }}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff size={17} />
+                          ) : (
+                            <Eye size={17} />
+                          )}
+                        </button>
+                      </div>
+                    </label>
+
+                    <label>
+                      Workspace role
+                      <select
+                        name="role"
+                        value={form.role}
+                        onChange={update}
+                        required
+                      >
+                        {registrationRoles.map((entry) => (
+                          <option key={entry.role} value={entry.role}>
+                            {entry.name ||
+                              ROLE_LABELS[entry.role] ||
+                              entry.role}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 8,
+                        padding: "10px 12px",
+                        fontSize: 12,
+                        color: "#475569",
+                        marginBottom: 14,
+                      }}
+                    >
+                      <strong>{ROLE_LABELS[form.role] || form.role}:</strong>{" "}
+                      {ROLE_DESCRIPTIONS[form.role]}
+                      <div
+                        style={{
+                          marginTop: 4,
+                          color: "#94a3b8",
+                          fontSize: 11,
+                        }}
+                      >
+                        Organisation Admin accounts are created by the system
+                        administrator.
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {error && (
+                  <div className="form-error">
+                    <XCircle size={16} />
+                    {error}
+                  </div>
+                )}
+
+                <Button type="submit" disabled={submitting}>
+                  {submitting
+                    ? "Please wait..."
+                    : isLogin
+                      ? "Sign in"
+                      : "Create account"}{" "}
+                  <ArrowRight size={16} />
+                </Button>
+              </form>
+            </>
           )}
 
           <p className="auth-switch">
