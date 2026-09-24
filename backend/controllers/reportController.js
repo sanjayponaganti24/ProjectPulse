@@ -19,9 +19,24 @@ async function getAccessibleProjectIds(user) {
   return projects.map((project) => project._id)
 }
 
+function getPeriodMatch(period) {
+  if (period === 'all-time') return {}
+
+  const now = new Date()
+  const start = new Date(now.getFullYear(), now.getMonth(), period === 'last-month' ? 1 : 1)
+  const end = new Date(now.getFullYear(), now.getMonth() + (period === 'last-month' ? 0 : 1), 1)
+
+  if (period === 'last-month') {
+    start.setMonth(start.getMonth() - 1)
+  }
+
+  return { createdAt: { $gte: start, $lt: end } }
+}
+
 export async function getReports(req, res, next) {
   try {
     const projectIds = await getAccessibleProjectIds(req.user)
+    const periodMatch = getPeriodMatch(req.query.period || 'this-month')
 
     if (projectIds.length === 0) {
       return res.json({
@@ -44,7 +59,7 @@ export async function getReports(req, res, next) {
       projectProgressData,
     ] = await Promise.all([
       Project.aggregate([
-        { $match: { _id: { $in: projectIds } } },
+        { $match: { _id: { $in: projectIds }, ...periodMatch } },
         {
           $group: {
             _id: null,
@@ -55,7 +70,7 @@ export async function getReports(req, res, next) {
         },
       ]),
       Task.aggregate([
-        { $match: { project: { $in: projectIds } } },
+        { $match: { project: { $in: projectIds }, ...periodMatch } },
         {
           $group: {
             _id: null,
@@ -67,13 +82,13 @@ export async function getReports(req, res, next) {
         },
       ]),
       Task.aggregate([
-        { $match: { project: { $in: projectIds } } },
+        { $match: { project: { $in: projectIds }, ...periodMatch } },
         { $group: { _id: '$priority', count: { $sum: 1 } } },
         { $project: { name: '$_id', value: '$count', _id: 0 } },
         { $sort: { name: 1 } },
       ]),
       Issue.aggregate([
-        { $match: { project: { $in: projectIds } } },
+        { $match: { project: { $in: projectIds }, ...periodMatch } },
         {
           $group: {
             _id: null,
@@ -84,13 +99,13 @@ export async function getReports(req, res, next) {
         },
       ]),
       Issue.aggregate([
-        { $match: { project: { $in: projectIds } } },
+        { $match: { project: { $in: projectIds }, ...periodMatch } },
         { $group: { _id: '$severity', count: { $sum: 1 } } },
         { $project: { name: '$_id', value: '$count', _id: 0 } },
         { $sort: { name: 1 } },
       ]),
       Project.aggregate([
-        { $match: { _id: { $in: projectIds } } },
+        { $match: { _id: { $in: projectIds }, ...periodMatch } },
         {
           $lookup: {
             from: 'tasks',

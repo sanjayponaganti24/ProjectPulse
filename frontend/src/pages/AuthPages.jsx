@@ -1,8 +1,23 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { Button } from '../components/UI.jsx'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { ArrowRight, AlertCircle, CheckCircle2, XCircle, Users, CalendarDays } from 'lucide-react'
+import { Button, Badge } from '../components/UI.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import api from '../services/api.js'
+import { ROLE_LABELS } from '../components/Sidebar.jsx'
+
+const ROLE_DESCRIPTIONS = {
+  ORGANISATION_ADMIN:
+    'Full control to manage users, teams, projects, roles, and organisation settings.',
+  PROJECT_MANAGER:
+    'Plan projects, manage milestones, sprints, assignments, and reports.',
+  TEAM_LEAD:
+    'Manage team workload, review tasks, resolve blockers, and coordinate releases.',
+  MEMBER:
+    'Work on assigned tasks, update progress, comment, and report issues.',
+  STAKEHOLDER:
+    'View authorized project progress, milestones, risks, and reports (Read-only).',
+}
 
 export function LoginPage() {
   const { login } = useAuth()

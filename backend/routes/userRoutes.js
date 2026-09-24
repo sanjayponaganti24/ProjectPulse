@@ -25,6 +25,42 @@ function validateRequest(req, res, next) {
 
 router.use(protect)
 
+router.patch(
+  '/me/profile',
+  [
+    body('name').optional().trim().notEmpty().withMessage('Name cannot be empty.'),
+    body('avatar').optional().isString().withMessage('Avatar must be text.'),
+  ],
+  validateRequest,
+  async (req, res, next) => {
+    try {
+      const updates = {}
+      if (req.body.name !== undefined) updates.name = req.body.name.trim()
+      if (req.body.avatar !== undefined) updates.avatar = req.body.avatar.trim()
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updates },
+        { new: true, runValidators: true },
+      ).select(userFields)
+
+      res.json({
+        success: true,
+        user: {
+          id: updatedUser._id.toString(),
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          avatar: updatedUser.avatar,
+          organisation: updatedUser.organisation,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  },
+)
+
 // List all workspace users
 router.get('/', async (req, res, next) => {
   try {

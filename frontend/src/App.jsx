@@ -1,140 +1,175 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
   ArrowRight,
   CalendarDays,
   Check,
   CheckCircle2,
-  ChevronDown,
   CircleAlert,
-  FolderKanban,
   MoreHorizontal,
+  Pencil,
   Plus,
   Search,
   Target,
   Users,
   X,
   XCircle,
-} from 'lucide-react'
-import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
-import AppShell from './components/AppShell.jsx'
-import ProtectedRoute from './components/ProtectedRoute.jsx'
-import DashboardPage from './pages/DashboardPage.jsx'
-import { MilestonesPage } from './pages/PlanningPages.jsx'
-import { ROLE_LABELS } from './components/Sidebar.jsx'
+} from "lucide-react";
+import {
+  Link,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import AppShell from "./components/AppShell.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import { MilestonesPage, SprintsPage } from "./pages/PlanningPages.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
+import { ROLE_LABELS } from "./components/Sidebar.jsx";
 import {
   Avatar,
   Badge,
-  Button,
   Card,
   EmptyState,
   PageHeader,
   ProgressBar,
-} from './components/UI.jsx'
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core'
-import { useAuth } from './context/AuthContext.jsx'
-import api from './services/api.js'
+  Button,
+} from "./components/UI.jsx";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { useAuth } from "./context/AuthContext.jsx";
+import api from "./services/api.js";
 
 function ProtectedLayout() {
   return (
     <ProtectedRoute>
       <AppShell />
     </ProtectedRoute>
-  )
-}
-
-function LandingPage() {
-  return <div className="landing"><header className="landing-nav"><Link to="/" className="brand"><span className="brand-mark">P</span><span>Project<span className="brand-accent">Pulse</span></span></Link><nav><Link to="/login">Sign in</Link><Link to="/register" className="button button-primary">Get started <ArrowRight size={15} /></Link></nav></header><main className="landing-hero"><div className="eyebrow">Plan. Assign. Track. Complete.</div><h1>Make progress <span>visible.</span></h1><p>ProjectPulse brings projects, people, and priorities together so every team can plan with confidence and finish meaningful work.</p><div className="hero-actions"><Link to="/register" className="button button-primary">Start planning <ArrowRight size={16} /></Link><Link to="/login" className="button button-secondary">Sign in</Link></div><div className="preview-window"><div className="preview-bar"><span /><span /><span /><small>ProjectPulse workspace</small></div><div className="preview-body"><div className="preview-sidebar"><b>ProjectPulse</b><span className="active">Overview</span><span>Projects</span><span>Tasks</span><span>Reports</span></div><div className="preview-content"><small>WORKSPACE OVERVIEW</small><h3>Plan with clarity</h3><div className="preview-stats"><span /><span /><span /></div><div className="preview-panels"><span /><span /></div></div></div></div></main><section className="landing-features">{[['Projects', FolderKanban, 'Keep every initiative organized and moving.'], ['Tasks', ClipboardList, 'Turn goals into clear, accountable next steps.'], ['Team', Users, 'Give everyone context without the noise.'], ['Insights', Activity, 'See momentum and make better decisions.']].map(([name, Icon, text]) => <div key={name}><Icon size={20} /><h3>{name}</h3><p>{text}</p></div>)}</section></div>
+  );
 }
 
 const ROLE_DESCRIPTIONS = {
-  ORGANISATION_ADMIN: 'Full control to manage users, teams, projects, roles, and organisation settings.',
-  PROJECT_MANAGER: 'Plan projects, manage milestones, sprints, assignments, and reports.',
-  TEAM_LEAD: 'Manage team workload, review tasks, resolve blockers, and coordinate releases.',
-  MEMBER: 'Work on assigned tasks, update progress, comment, and report issues.',
-  STAKEHOLDER: 'View authorized project progress, milestones, risks, and reports (Read-only).',
-}
+  ORGANISATION_ADMIN:
+    "Full control to manage users, teams, projects, roles, and organisation settings.",
+  PROJECT_MANAGER:
+    "Plan projects, manage milestones, sprints, assignments, and reports.",
+  TEAM_LEAD:
+    "Manage team workload, review tasks, resolve blockers, and coordinate releases.",
+  MEMBER:
+    "Work on assigned tasks, update progress, comment, and report issues.",
+  STAKEHOLDER:
+    "View authorized project progress, milestones, risks, and reports (Read-only).",
+};
 
 function AuthPage({ mode }) {
-  const isLogin = mode === 'login'
-  const { login, register } = useAuth()
-  const location = useLocation()
-  const navigate = useNavigate()
+  const isLogin = mode === "login";
+  const { login, register } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'MEMBER',
-    organisationName: 'ProjectPulse Workspace',
-  })
-  const [adminExists, setAdminExists] = useState(true)
-  const [orgInfo, setOrgInfo] = useState({ name: 'ProjectPulse Workspace' })
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    role: "MEMBER",
+    organisationName: "ProjectPulse Workspace",
+  });
+  const [adminExists, setAdminExists] = useState(true);
+  const [orgInfo, setOrgInfo] = useState({ name: "ProjectPulse Workspace" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api.get('/api/auth/roles')
+    api
+      .get("/api/auth/roles")
       .then((res) => {
-        setAdminExists(res.data.adminExists)
+        setAdminExists(res.data.adminExists);
         if (res.data.organisation) {
-          setOrgInfo(res.data.organisation)
+          setOrgInfo(res.data.organisation);
         }
         if (!res.data.adminExists) {
-          setForm((prev) => ({ ...prev, role: 'ORGANISATION_ADMIN' }))
+          setForm((prev) => ({ ...prev, role: "ORGANISATION_ADMIN" }));
         }
       })
-      .catch(() => {})
-  }, [mode])
+      .catch(() => {});
+  }, [mode]);
 
-  const update = (event) => setForm({ ...form, [event.target.name]: event.target.value })
+  const update = (event) =>
+    setForm({ ...form, [event.target.name]: event.target.value });
 
   async function submit(event) {
-    event.preventDefault()
-    setError('')
-    if (!form.email || !form.password || (!isLogin && (!form.name || !form.confirmPassword))) {
-      return setError('Please complete all required fields.')
+    event.preventDefault();
+    setError("");
+    if (
+      !form.email ||
+      !form.password ||
+      (!isLogin && (!form.name || !form.confirmPassword))
+    ) {
+      return setError("Please complete all required fields.");
     }
     if (!isLogin && form.password !== form.confirmPassword) {
-      return setError('Passwords do not match.')
+      return setError("Passwords do not match.");
     }
     if (!isLogin && form.password.length < 6) {
-      return setError('Password must be at least 6 characters.')
+      return setError("Password must be at least 6 characters.");
     }
 
-    setSubmitting(true)
+    setSubmitting(true);
     try {
       if (isLogin) {
-        await login({ email: form.email, password: form.password })
-        navigate('/dashboard')
+        await login({ email: form.email, password: form.password });
+        navigate("/dashboard");
       } else {
         const payload = {
           name: form.name,
           email: form.email,
           password: form.password,
-          role: !adminExists ? 'ORGANISATION_ADMIN' : form.role,
+          role: !adminExists ? "ORGANISATION_ADMIN" : form.role,
           organisationName: !adminExists ? form.organisationName : undefined,
-        }
-        const res = await register(payload)
-        if (!adminExists || res?.user?.role === 'ORGANISATION_ADMIN') {
-          navigate('/dashboard')
+        };
+        const res = await register(payload);
+        if (!adminExists || res?.user?.role === "ORGANISATION_ADMIN") {
+          navigate("/dashboard");
         } else {
-          navigate('/login', { state: { registered: true } })
+          navigate("/login", { state: { registered: true } });
         }
       }
     } catch (requestError) {
       setError(
         requestError.response?.data?.message ||
-          (isLogin ? 'Invalid email or password.' : 'Unable to create your account. Please try again.')
-      )
+          (isLogin
+            ? "Invalid email or password."
+            : "Unable to create your account. Please try again."),
+      );
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
-  const registeredNotice = location.state?.registered
+  const registeredNotice = location.state?.registered;
 
   return (
     <div className="auth-page">
@@ -147,13 +182,19 @@ function AuthPage({ mode }) {
         </Link>
         <div className="auth-message">
           <div className="eyebrow">Your work, in focus</div>
-          <h1>{isLogin ? 'Welcome back to your workspace.' : !adminExists ? 'Setup your organisation.' : 'Build momentum with your team.'}</h1>
+          <h1>
+            {isLogin
+              ? "Welcome back to your workspace."
+              : !adminExists
+                ? "Setup your organisation."
+                : "Build momentum with your team."}
+          </h1>
           <p>
             {isLogin
-              ? 'Plan clearly, collaborate simply, and keep every deadline visible.'
+              ? "Plan clearly, collaborate simply, and keep every deadline visible."
               : !adminExists
-              ? 'Initialize the workspace, configure your organisation, and begin as Organisation Admin.'
-              : `Join ${orgInfo.name || 'ProjectPulse'} to collaborate on active initiatives.`}
+                ? "Initialize the workspace, configure your organisation, and begin as Organisation Admin."
+                : `Join ${orgInfo.name || "ProjectPulse"} to collaborate on active initiatives.`}
           </p>
           <div className="auth-quote">
             <CheckCircle2 size={18} />
@@ -164,26 +205,59 @@ function AuthPage({ mode }) {
       <div className="auth-panel">
         <div className="auth-card">
           <div className="auth-heading">
-            <h2>{isLogin ? 'Sign in' : !adminExists ? 'Create organisation' : 'Create your account'}</h2>
+            <h2>
+              {isLogin
+                ? "Sign in"
+                : !adminExists
+                  ? "Create organisation"
+                  : "Create your account"}
+            </h2>
             <p>
               {isLogin
-                ? 'Enter your credentials to continue.'
+                ? "Enter your credentials to continue."
                 : !adminExists
-                ? 'First user onboarding: create workspace & organisation admin.'
-                : 'Join your team workspace in seconds.'}
+                  ? "First user onboarding: create workspace & organisation admin."
+                  : "Join your team workspace in seconds."}
             </p>
           </div>
 
           {registeredNotice && !error && (
-            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', padding: '10px 14px', borderRadius: 8, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <div
+              style={{
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                color: "#065f46",
+                padding: "10px 14px",
+                borderRadius: 8,
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 14,
+              }}
+            >
               <CheckCircle2 size={16} />
-              <span>Account created successfully! Please sign in with your credentials.</span>
+              <span>
+                Account created successfully! Please sign in with your
+                credentials.
+              </span>
             </div>
           )}
 
           {!isLogin && !adminExists && (
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
-              <strong>First-Time Setup:</strong> You are the first user for this instance and will become the <strong>Organisation Admin</strong>.
+            <div
+              style={{
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                color: "#1e40af",
+                padding: "10px 14px",
+                borderRadius: 8,
+                fontSize: 13,
+                marginBottom: 14,
+              }}
+            >
+              <strong>First-Time Setup:</strong> You are the first user for this
+              instance and will become the <strong>Organisation Admin</strong>.
             </div>
           )}
 
@@ -236,7 +310,7 @@ function AuthPage({ mode }) {
                 value={form.password}
                 onChange={update}
                 placeholder="At least 6 characters"
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 required
               />
             </label>
@@ -264,20 +338,52 @@ function AuthPage({ mode }) {
                         <option value="MEMBER">Developer / Member</option>
                         <option value="PROJECT_MANAGER">Project Manager</option>
                         <option value="TEAM_LEAD">Team Lead</option>
-                        <option value="STAKEHOLDER">Stakeholder (Read-only)</option>
+                        <option value="STAKEHOLDER">
+                          Stakeholder (Read-only)
+                        </option>
                       </select>
                     </label>
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#475569', marginBottom: 14 }}>
-                      <strong>{ROLE_LABELS[form.role] || form.role}:</strong> {ROLE_DESCRIPTIONS[form.role]}
-                      <div style={{ marginTop: 4, color: '#94a3b8', fontSize: 11 }}>
-                        Organisation Admin accounts are assigned by workspace administrators.
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 8,
+                        padding: "10px 12px",
+                        fontSize: 12,
+                        color: "#475569",
+                        marginBottom: 14,
+                      }}
+                    >
+                      <strong>{ROLE_LABELS[form.role] || form.role}:</strong>{" "}
+                      {ROLE_DESCRIPTIONS[form.role]}
+                      <div
+                        style={{ marginTop: 4, color: "#94a3b8", fontSize: 11 }}
+                      >
+                        Organisation Admin accounts are assigned by workspace
+                        administrators.
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#475569', marginBottom: 14 }}>
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 8,
+                      padding: "10px 12px",
+                      fontSize: 12,
+                      color: "#475569",
+                      marginBottom: 14,
+                    }}
+                  >
                     <strong>Role: Organisation Admin</strong>
-                    <p style={{ margin: '4px 0 0', fontSize: 11, color: '#64748b' }}>
+                    <p
+                      style={{
+                        margin: "4px 0 0",
+                        fontSize: 11,
+                        color: "#64748b",
+                      }}
+                    >
                       {ROLE_DESCRIPTIONS.ORGANISATION_ADMIN}
                     </p>
                   </div>
@@ -293,60 +399,88 @@ function AuthPage({ mode }) {
             )}
 
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'Please wait...' : isLogin ? 'Sign in' : !adminExists ? 'Create workspace & admin' : 'Create account'} <ArrowRight size={16} />
+              {submitting
+                ? "Please wait..."
+                : isLogin
+                  ? "Sign in"
+                  : !adminExists
+                    ? "Create workspace & admin"
+                    : "Create account"}{" "}
+              <ArrowRight size={16} />
             </Button>
           </form>
 
           <p className="auth-switch">
-            {isLogin ? "Don't have an account?" : 'Already have an account?'} <Link to={isLogin ? '/register' : '/login'}>{isLogin ? 'Create one' : 'Sign in'}</Link>
+            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+            <Link to={isLogin ? "/register" : "/login"}>
+              {isLogin ? "Create one" : "Sign in"}
+            </Link>
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function ProjectError({ message }) {
-  return message ? <div className="form-error"><XCircle size={16} />{message}</div> : null
+  return message ? (
+    <div className="form-error">
+      <XCircle size={16} />
+      {message}
+    </div>
+  ) : null;
 }
 
 function ProjectsPage() {
-  const { user } = useAuth()
-  const [items, setItems] = useState([])
-  const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { user } = useAuth();
+  const [items, setItems] = useState([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   async function loadProjects() {
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError("");
     try {
-      const response = await api.get('/api/projects', { params: { search: query || undefined, status: status || undefined } })
-      setItems(response.data.projects || [])
+      const response = await api.get("/api/projects", {
+        params: { search: query || undefined, status: status || undefined },
+      });
+      setItems(response.data.projects || []);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to load projects.')
+      setError(
+        requestError.response?.data?.message || "Unable to load projects.",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  useEffect(() => { loadProjects() }, [query, status])
+  useEffect(() => {
+    loadProjects();
+  }, [query, status]);
 
   async function deleteProject(id) {
-    if (!window.confirm('Delete this project? This cannot be undone.')) return
+    if (!window.confirm("Delete this project? This cannot be undone.")) return;
     try {
-      await api.delete(`/api/projects/${id}`)
-      setItems((current) => current.filter((project) => project._id !== id))
+      await api.delete(`/api/projects/${id}`);
+      setItems((current) => current.filter((project) => project._id !== id));
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to delete project.')
+      setError(
+        requestError.response?.data?.message || "Unable to delete project.",
+      );
     }
   }
 
-  const canCreate = user?.role === 'ORGANISATION_ADMIN' || user?.role === 'PROJECT_MANAGER'
+  const canCreate =
+    user?.role === "ORGANISATION_ADMIN" ||
+    user?.role === "PROJECT_MANAGER" ||
+    user?.role === "TEAM_LEAD";
   const canManageProject = (p) =>
-    user?.role === 'ORGANISATION_ADMIN' ||
-    (user?.role === 'PROJECT_MANAGER' && ((p.manager?._id || p.manager) === user?.id || (p.manager?._id || p.manager) === user?._id))
+    user?.role === "ORGANISATION_ADMIN" ||
+    (user?.role === "PROJECT_MANAGER" &&
+      ((p.manager?._id || p.manager) === user?.id ||
+        (p.manager?._id || p.manager) === user?._id));
 
   return (
     <>
@@ -354,14 +488,28 @@ function ProjectsPage() {
         eyebrow="Workspace"
         title="Projects"
         description="Manage your team's work in one place."
-        action={canCreate && <Link to="/projects/new" className="button button-primary"><Plus size={16} />New project</Link>}
+        action={
+          canCreate && (
+            <Link to="/projects/new" className="button button-primary">
+              <Plus size={16} />
+              New project
+            </Link>
+          )
+        }
       />
       <div className="toolbar">
         <label className="search-field">
           <Search size={17} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects..." />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search projects..."
+          />
         </label>
-        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+        >
           <option value="">All statuses</option>
           <option value="PLANNED">Planned</option>
           <option value="ACTIVE">Active</option>
@@ -370,13 +518,22 @@ function ProjectsPage() {
       </div>
       <ProjectError message={error} />
       {loading ? (
-        <div className="loading-screen"><div className="spinner" />Loading projects...</div>
+        <div className="loading-screen">
+          <div className="spinner" />
+          Loading projects...
+        </div>
       ) : items.length === 0 ? (
-        <Card>
+        <Card className="report-chart-card">
           <EmptyState
             title="No projects yet"
             description="Create a project to start organizing your team's work."
-            action={canCreate && <Link to="/projects/new" className="button button-primary">Create project</Link>}
+            action={
+              canCreate && (
+                <Link to="/projects/new" className="button button-primary">
+                  Create project
+                </Link>
+              )
+            }
           />
         </Card>
       ) : (
@@ -387,89 +544,136 @@ function ProjectsPage() {
                 <div className="project-avatar large">{project.name[0]}</div>
                 <div>
                   {canManageProject(project) && (
-                    <Link className="more-button" to={`/projects/${project._id}/edit`}>
+                    <Link
+                      className="more-button"
+                      to={`/projects/${project._id}/edit`}
+                    >
                       <MoreHorizontal size={18} />
                     </Link>
                   )}
                   {canManageProject(project) && (
-                    <button className="more-button" onClick={() => deleteProject(project._id)} title="Delete project">
+                    <button
+                      className="more-button"
+                      onClick={() => deleteProject(project._id)}
+                      title="Delete project"
+                    >
                       <X size={16} />
                     </button>
                   )}
                 </div>
               </div>
               <Badge tone={project.status}>{project.status}</Badge>
-              <h2><Link to={`/projects/${project._id}`}>{project.name}</Link></h2>
-              <p>{project.description || 'No description provided.'}</p>
+              <h2>
+                <Link to={`/projects/${project._id}`}>{project.name}</Link>
+              </h2>
+              <p>{project.description || "No description provided."}</p>
               <div className="project-progress">
-                <div><span>Progress</span><strong>{project.progress ?? 0}%</strong></div>
-                <ProgressBar value={project.progress ?? (project.status === 'COMPLETED' ? 100 : project.status === 'ACTIVE' ? 50 : 0)} />
+                <div>
+                  <span>Progress</span>
+                  <strong>{project.progress ?? 0}%</strong>
+                </div>
+                <ProgressBar
+                  value={
+                    project.progress ??
+                    (project.status === "COMPLETED"
+                      ? 100
+                      : project.status === "ACTIVE"
+                        ? 50
+                        : 0)
+                  }
+                />
               </div>
               <div className="project-meta">
-                <span><Users size={15} />{project.members?.length || 0} members</span>
-                <span><CalendarDays size={15} />{project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline'}</span>
+                <span>
+                  <Users size={15} />
+                  {project.members?.length || 0} members
+                </span>
+                <span>
+                  <CalendarDays size={15} />
+                  {project.deadline
+                    ? new Date(project.deadline).toLocaleDateString()
+                    : "No deadline"}
+                </span>
               </div>
             </Card>
           ))}
         </div>
       )}
     </>
-  )
+  );
 }
 
 function TasksPage() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [items, setItems] = useState([])
-  const [filters, setFilters] = useState({ status: '', priority: '', onlyMine: false })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]);
+  const [filters, setFilters] = useState({
+    status: "",
+    priority: "",
+    onlyMine: false,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const canCreate = user?.role === 'ORGANISATION_ADMIN' || user?.role === 'PROJECT_MANAGER' || user?.role === 'TEAM_LEAD'
-  const canDelete = user?.role === 'ORGANISATION_ADMIN' || user?.role === 'PROJECT_MANAGER'
-  const isStakeholder = user?.role === 'STAKEHOLDER'
+  const canCreate =
+    user?.role === "ORGANISATION_ADMIN" ||
+    user?.role === "PROJECT_MANAGER" ||
+    user?.role === "TEAM_LEAD";
+  const canDelete =
+    user?.role === "ORGANISATION_ADMIN" || user?.role === "PROJECT_MANAGER";
+  const isStakeholder = user?.role === "STAKEHOLDER";
 
   async function loadTasks() {
-    setLoading(true)
+    setLoading(true);
     try {
-      const { data } = await api.get('/api/tasks', {
+      const { data } = await api.get("/api/tasks", {
         params: {
           status: filters.status || undefined,
           priority: filters.priority || undefined,
         },
-      })
-      let taskList = data.tasks || []
+      });
+      let taskList = data.tasks || [];
       if (filters.onlyMine && user) {
-        taskList = taskList.filter((t) => (t.assignedTo?._id || t.assignedTo) === user.id)
+        taskList = taskList.filter(
+          (t) => (t.assignedTo?._id || t.assignedTo) === user.id,
+        );
       }
-      setItems(taskList)
-      setError('')
+      setItems(taskList);
+      setError("");
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to load tasks.')
+      setError(requestError.response?.data?.message || "Unable to load tasks.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  useEffect(() => { loadTasks() }, [filters.status, filters.priority, filters.onlyMine])
+  useEffect(() => {
+    loadTasks();
+  }, [filters.status, filters.priority, filters.onlyMine]);
 
   async function updateStatus(task, status) {
-    if (isStakeholder) return
+    if (isStakeholder) return;
     try {
-      const { data } = await api.patch(`/api/tasks/${task._id}`, { status })
-      setItems((current) => current.map((item) => (item._id === task._id ? data.task : item)))
+      const { data } = await api.patch(`/api/tasks/${task._id}`, { status });
+      setItems((current) =>
+        current.map((item) => (item._id === task._id ? data.task : item)),
+      );
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to update task.')
+      setError(
+        requestError.response?.data?.message || "Unable to update task.",
+      );
     }
   }
 
   async function deleteTask(id) {
-    if (!window.confirm('Delete this task?')) return
+    if (!window.confirm("Delete this task?")) return;
     try {
-      await api.delete(`/api/tasks/${id}`)
-      setItems((current) => current.filter((task) => task._id !== id))
+      await api.delete(`/api/tasks/${id}`);
+      setItems((current) => current.filter((task) => task._id !== id));
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to delete task.')
+      setError(
+        requestError.response?.data?.message || "Unable to delete task.",
+      );
     }
   }
 
@@ -477,26 +681,50 @@ function TasksPage() {
     <>
       <PageHeader
         eyebrow="Workspace"
-        title={user?.role === 'MEMBER' && filters.onlyMine ? 'My Tasks' : 'Tasks'}
-        description={isStakeholder ? 'Read-only view of authorized tasks across projects.' : 'Keep priorities clear and work moving.'}
-        action={canCreate && <Button icon={Plus} onClick={() => navigate('/tasks/new')}>New task</Button>}
+        title={
+          user?.role === "MEMBER" && filters.onlyMine ? "My Tasks" : "Tasks"
+        }
+        description={
+          isStakeholder
+            ? "Read-only view of authorized tasks across projects."
+            : "Keep priorities clear and work moving."
+        }
+        action={
+          canCreate && (
+            <Button icon={Plus} onClick={() => navigate("/tasks/new")}>
+              New task
+            </Button>
+          )
+        }
       />
       <div className="toolbar">
-        {user?.role === 'MEMBER' && (
+        {user?.role === "MEMBER" && (
           <Button
-            variant={filters.onlyMine ? 'primary' : 'secondary'}
+            variant={filters.onlyMine ? "primary" : "secondary"}
             onClick={() => setFilters((f) => ({ ...f, onlyMine: !f.onlyMine }))}
           >
-            {filters.onlyMine ? 'Showing: Assigned to me' : 'Show only my tasks'}
+            {filters.onlyMine
+              ? "Showing: Assigned to me"
+              : "Show only my tasks"}
           </Button>
         )}
-        <select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
+        <select
+          value={filters.status}
+          onChange={(event) =>
+            setFilters({ ...filters, status: event.target.value })
+          }
+        >
           <option value="">All statuses</option>
           <option value="TODO">To do</option>
           <option value="IN_PROGRESS">In progress</option>
           <option value="COMPLETED">Completed</option>
         </select>
-        <select value={filters.priority} onChange={(event) => setFilters({ ...filters, priority: event.target.value })}>
+        <select
+          value={filters.priority}
+          onChange={(event) =>
+            setFilters({ ...filters, priority: event.target.value })
+          }
+        >
           <option value="">All priorities</option>
           <option value="HIGH">High</option>
           <option value="MEDIUM">Medium</option>
@@ -505,9 +733,17 @@ function TasksPage() {
       </div>
       <ProjectError message={error} />
       {loading ? (
-        <div className="loading-screen"><div className="spinner" />Loading tasks...</div>
+        <div className="loading-screen">
+          <div className="spinner" />
+          Loading tasks...
+        </div>
       ) : items.length === 0 ? (
-        <Card><EmptyState title="No tasks found" description="Create a task or adjust your filters to see work here." /></Card>
+        <Card>
+          <EmptyState
+            title="No tasks found"
+            description="Create a task or adjust your filters to see work here."
+          />
+        </Card>
       ) : (
         <Card className="table-card">
           <div className="data-table">
@@ -520,13 +756,16 @@ function TasksPage() {
               <span>Due date</span>
             </div>
             {items.map((task) => {
-              const isAssignee = (task.assignedTo?._id || task.assignedTo) === user?.id
-              const canEditStatus = !isStakeholder && (canCreate || isAssignee)
+              const isAssignee =
+                (task.assignedTo?._id || task.assignedTo) === user?.id;
+              const canEditStatus = !isStakeholder && (canCreate || isAssignee);
               return (
                 <div className="table-row" key={task._id}>
                   <span className="task-title">
-                    <span className={`task-check ${task.status === 'COMPLETED' ? 'done' : ''}`}>
-                      {task.status === 'COMPLETED' && <Check size={12} />}
+                    <span
+                      className={`task-check ${task.status === "COMPLETED" ? "done" : ""}`}
+                    >
+                      {task.status === "COMPLETED" && <Check size={12} />}
                     </span>
                     <Link to={`/tasks/${task._id}`}>
                       <strong>{task.title}</strong>
@@ -534,195 +773,362 @@ function TasksPage() {
                   </span>
                   <span>{task.project?.name}</span>
                   <span className="assignee">
-                    <Avatar name={task.assignedTo?.name || 'User'} size="sm" />
+                    <Avatar name={task.assignedTo?.name || "User"} size="sm" />
                     {task.assignedTo?.name}
                   </span>
-                  <span><Badge tone={task.priority}>{task.priority}</Badge></span>
+                  <span>
+                    <Badge tone={task.priority}>{task.priority}</Badge>
+                  </span>
                   <span>
                     {canEditStatus ? (
                       <select
                         className="inline-select"
                         value={task.status}
-                        onChange={(event) => updateStatus(task, event.target.value)}
+                        onChange={(event) =>
+                          updateStatus(task, event.target.value)
+                        }
                       >
                         <option value="TODO">To do</option>
                         <option value="IN_PROGRESS">In progress</option>
                         <option value="COMPLETED">Completed</option>
                       </select>
                     ) : (
-                      <Badge tone={task.status}>{task.status.replace('_', ' ')}</Badge>
+                      <Badge tone={task.status}>
+                        {task.status.replace("_", " ")}
+                      </Badge>
                     )}
                   </span>
                   <span>{new Date(task.dueDate).toLocaleDateString()}</span>
                   {canDelete && (
-                    <button className="more-button" onClick={() => deleteTask(task._id)}>
+                    <button
+                      className="more-button"
+                      onClick={() => deleteTask(task._id)}
+                    >
                       <X size={15} />
                     </button>
                   )}
                 </div>
-              )
+              );
             })}
           </div>
         </Card>
       )}
     </>
-  )
+  );
 }
 
 function TaskForm({ edit = false }) {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [projectsList, setProjectsList] = useState([])
-  const [form, setForm] = useState({ title: '', description: '', project: '', assignedTo: '', status: 'TODO', priority: 'MEDIUM', dueDate: '' })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(edit)
-  const [saving, setSaving] = useState(false)
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [projectsList, setProjectsList] = useState([]);
+  const [projectName, setProjectName] = useState("");
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    project: "",
+    assignedTo: "",
+    status: "TODO",
+    priority: "MEDIUM",
+    dueDate: "",
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(edit);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.get('/api/projects'), edit ? api.get(`/api/tasks/${id}`) : Promise.resolve(null)])
+    Promise.all([
+      api.get("/api/projects"),
+      edit ? api.get(`/api/tasks/${id}`) : Promise.resolve(null),
+    ])
       .then(([projectsResponse, taskResponse]) => {
-        setProjectsList(projectsResponse.data.projects || [])
+        const projects = projectsResponse.data.projects || [];
+        setProjectsList(projects);
         if (taskResponse) {
-          const task = taskResponse.data.task
+          const task = taskResponse.data.task;
+          setProjectName(task.project?.name || "");
           setForm({
             title: task.title,
-            description: task.description || '',
+            description: task.description || "",
             project: task.project?._id,
             assignedTo: task.assignedTo?._id,
             status: task.status,
             priority: task.priority,
             dueDate: task.dueDate?.slice(0, 10),
-          })
+          });
         }
       })
-      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load task form.'))
-      .finally(() => setLoading(false))
-  }, [edit, id])
+      .catch((requestError) =>
+        setError(
+          requestError.response?.data?.message || "Unable to load task form.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, [edit, id]);
 
-  const selectedProject = projectsList.find((project) => project._id === form.project)
+  const selectedProject = projectsList.find(
+    (project) => project._id === form.project,
+  );
+  const isTeamLead = user?.role === "TEAM_LEAD";
 
   const eligibleAssignees = useMemo(() => {
-    if (!selectedProject) return []
-    const list = []
-    if (selectedProject.manager) list.push(selectedProject.manager)
-    if (selectedProject.teamLead) list.push(selectedProject.teamLead)
-    if (Array.isArray(selectedProject.members)) list.push(...selectedProject.members)
-    const seen = new Set()
+    if (!selectedProject) return [];
+    const list = [];
+    if (selectedProject.manager) list.push(selectedProject.manager);
+    if (selectedProject.teamLead) list.push(selectedProject.teamLead);
+    if (Array.isArray(selectedProject.members))
+      list.push(...selectedProject.members);
+    const seen = new Set();
     return list.filter((item) => {
-      const uId = (item?._id || item)?.toString()
-      if (!uId || seen.has(uId)) return false
-      seen.add(uId)
-      return true
-    })
-  }, [selectedProject])
+      const uId = (item?._id || item)?.toString();
+      if (!uId || seen.has(uId)) return false;
+      seen.add(uId);
+      return true;
+    });
+  }, [selectedProject]);
 
-  function update(event) { setForm({ ...form, [event.target.name]: event.target.value }) }
+  function update(event) {
+    setForm({ ...form, [event.target.name]: event.target.value });
+  }
 
   async function submit(event) {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
+    event.preventDefault();
+    const project = isTeamLead
+      ? projectsList.find(
+          (item) =>
+            item.name.toLowerCase() === projectName.trim().toLowerCase(),
+        )
+      : selectedProject;
+    if (isTeamLead && !project) {
+      setError("Enter the name of a project you lead or select a suggestion.");
+      return;
+    }
+    setSaving(true);
+    setError("");
     try {
-      const response = edit ? await api.put(`/api/tasks/${id}`, form) : await api.post('/api/tasks', form)
-      navigate(`/tasks/${response.data.task._id}`)
+      const payload = isTeamLead ? { ...form, project: project._id } : form;
+      const response = edit
+        ? await api.put(`/api/tasks/${id}`, payload)
+        : await api.post("/api/tasks", payload);
+      navigate(`/tasks/${response.data.task._id}`);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to save task.')
+      setError(requestError.response?.data?.message || "Unable to save task.");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
-  if (loading) return <div className="loading-screen"><div className="spinner" />Loading task...</div>
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        Loading task...
+      </div>
+    );
 
   return (
     <>
-      <PageHeader eyebrow="Workspace" title={edit ? 'Edit task' : 'New task'} description="Create a clear, accountable next step." />
+      <PageHeader
+        eyebrow="Workspace"
+        title={edit ? "Edit task" : "New task"}
+        description="Create a clear, accountable next step."
+      />
       <Card className="form-card">
         <form onSubmit={submit}>
-          <label>Title<input name="title" value={form.title} onChange={update} required placeholder="Task title" /></label>
-          <label>Description<textarea name="description" value={form.description} onChange={update} rows="4" placeholder="Add context" /></label>
+          <label>
+            Title
+            <input
+              name="title"
+              value={form.title}
+              onChange={update}
+              required
+              placeholder="Task title"
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={update}
+              rows="4"
+              placeholder="Add context"
+            />
+          </label>
           <label>
             Project
-            <select
-              name="project"
-              value={form.project}
-              onChange={(event) => setForm({ ...form, project: event.target.value, assignedTo: '' })}
-              required
-            >
-              <option value="">Select project</option>
-              {projectsList.map((project) => (
-                <option key={project._id} value={project._id}>{project.name}</option>
-              ))}
-            </select>
+            {isTeamLead ? (
+              <>
+                <input
+                  name="projectName"
+                  value={projectName}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    const project = projectsList.find(
+                      (item) =>
+                        item.name.toLowerCase() === value.trim().toLowerCase(),
+                    );
+                    setProjectName(value);
+                    setForm({
+                      ...form,
+                      project: project?._id || "",
+                      assignedTo: "",
+                    });
+                  }}
+                  list="team-lead-projects"
+                  placeholder="Type the project name"
+                  required
+                />
+                <datalist id="team-lead-projects">
+                  {projectsList.map((project) => (
+                    <option key={project._id} value={project.name} />
+                  ))}
+                </datalist>
+              </>
+            ) : (
+              <select
+                name="project"
+                value={form.project}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    project: event.target.value,
+                    assignedTo: "",
+                  })
+                }
+                required
+              >
+                <option value="">Select project</option>
+                {projectsList.map((project) => (
+                  <option key={project._id} value={project._id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </label>
           <label>
             Assigned member
-            <select name="assignedTo" value={form.assignedTo} onChange={update} required>
+            <select
+              name="assignedTo"
+              value={form.assignedTo}
+              onChange={update}
+              required
+            >
               <option value="">Select member</option>
               {eligibleAssignees.map((member) => (
                 <option key={member._id} value={member._id}>
-                  {member.name} ({ROLE_LABELS[member.role] || member.role || 'Member'})
+                  {member.name} (
+                  {ROLE_LABELS[member.role] || member.role || "Member"})
                 </option>
               ))}
             </select>
           </label>
           <div className="form-row">
-            <label>Priority<select name="priority" value={form.priority} onChange={update}><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></label>
-            <label>Due date<input name="dueDate" value={form.dueDate} onChange={update} type="date" required /></label>
+            <label>
+              Priority
+              <select name="priority" value={form.priority} onChange={update}>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+            </label>
+            <label>
+              Due date
+              <input
+                name="dueDate"
+                value={form.dueDate}
+                onChange={update}
+                type="date"
+                required
+              />
+            </label>
           </div>
           <ProjectError message={error} />
-          <Button type="submit" disabled={saving}>{saving ? 'Saving...' : edit ? 'Save changes' : 'Create task'}</Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving..." : edit ? "Save changes" : "Create task"}
+          </Button>
         </form>
       </Card>
     </>
-  )
+  );
 }
 
 function TaskDetailPage() {
-  const { id } = useParams()
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [task, setTask] = useState(null)
-  const [error, setError] = useState('')
+  const { id } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [task, setTask] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get(`/api/tasks/${id}`)
+    api
+      .get(`/api/tasks/${id}`)
       .then(({ data }) => setTask(data.task))
-      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load task.'))
-  }, [id])
+      .catch((requestError) =>
+        setError(
+          requestError.response?.data?.message || "Unable to load task.",
+        ),
+      );
+  }, [id]);
 
   async function deleteTask() {
-    if (!window.confirm('Delete this task?')) return
+    if (!window.confirm("Delete this task?")) return;
     try {
-      await api.delete(`/api/tasks/${id}`)
-      navigate('/tasks')
+      await api.delete(`/api/tasks/${id}`);
+      navigate("/tasks");
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to delete task.')
+      setError(
+        requestError.response?.data?.message || "Unable to delete task.",
+      );
     }
   }
 
-  if (!task) return error ? <ProjectError message={error} /> : <div className="loading-screen"><div className="spinner" />Loading task...</div>
+  if (!task)
+    return error ? (
+      <ProjectError message={error} />
+    ) : (
+      <div className="loading-screen">
+        <div className="spinner" />
+        Loading task...
+      </div>
+    );
 
-  const canManage = user?.role === 'ORGANISATION_ADMIN' || user?.role === 'PROJECT_MANAGER' || user?.role === 'TEAM_LEAD'
-  const canDelete = user?.role === 'ORGANISATION_ADMIN' || user?.role === 'PROJECT_MANAGER'
+  const canManage =
+    user?.role === "ORGANISATION_ADMIN" ||
+    user?.role === "PROJECT_MANAGER" ||
+    user?.role === "TEAM_LEAD";
+  const canDelete =
+    user?.role === "ORGANISATION_ADMIN" || user?.role === "PROJECT_MANAGER";
 
   return (
     <>
       <PageHeader
         eyebrow="Task details"
         title={task.title}
-        description={task.description || 'No description provided.'}
+        description={task.description || "No description provided."}
         action={
           <div className="hero-actions">
-            {canManage && <Link to={`/tasks/${id}/edit`} className="button button-secondary">Edit task</Link>}
-            {canDelete && <Button variant="danger" onClick={deleteTask}>Delete</Button>}
+            {canManage && (
+              <Link
+                to={`/tasks/${id}/edit`}
+                className="button button-secondary"
+              >
+                Edit task
+              </Link>
+            )}
+            {canDelete && (
+              <Button variant="danger" onClick={deleteTask}>
+                Delete
+              </Button>
+            )}
           </div>
         }
       />
       <Card className="detail-card">
         <div className="section-heading">
           <h2>Task information</h2>
-          <Badge tone={task.status}>{task.status.replace('_', ' ')}</Badge>
+          <Badge tone={task.status}>{task.status.replace("_", " ")}</Badge>
         </div>
         <div className="project-meta">
           <span>Project: {task.project?.name}</span>
@@ -732,142 +1138,284 @@ function TaskDetailPage() {
         </div>
       </Card>
     </>
-  )
+  );
 }
 
 function KanbanCard({ task, overlay = false }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task._id })
-  const style = transform && !overlay ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
-  return <Card ref={setNodeRef} style={style} className={`kanban-card ${isDragging ? 'kanban-dragging' : ''} ${overlay ? 'kanban-overlay' : ''}`} {...listeners} {...attributes}><div className="kanban-card-top"><Badge tone={task.priority}>{task.priority}</Badge><MoreHorizontal size={17} /></div><h3><Link to={`/tasks/${task._id}`}>{task.title}</Link></h3><p>{task.project?.name}</p><div className="kanban-card-foot"><span className="assignee"><Avatar name={task.assignedTo?.name || 'User'} size="sm" />{task.assignedTo?.name}</span><span><CalendarDays size={14} />{new Date(task.dueDate).toLocaleDateString()}</span></div></Card>
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({ id: task._id });
+  const style =
+    transform && !overlay
+      ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+      : undefined;
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={`kanban-card ${isDragging ? "kanban-dragging" : ""} ${overlay ? "kanban-overlay" : ""}`}
+      {...listeners}
+      {...attributes}
+    >
+      <div className="kanban-card-top">
+        <Badge tone={task.priority}>{task.priority}</Badge>
+        <MoreHorizontal size={17} />
+      </div>
+      <h3>
+        <Link to={`/tasks/${task._id}`}>{task.title}</Link>
+      </h3>
+      <p>{task.project?.name}</p>
+      <div className="kanban-card-foot">
+        <span className="assignee">
+          <Avatar name={task.assignedTo?.name || "User"} size="sm" />
+          {task.assignedTo?.name}
+        </span>
+        <span>
+          <CalendarDays size={14} />
+          {new Date(task.dueDate).toLocaleDateString()}
+        </span>
+      </div>
+    </Card>
+  );
 }
 
 function KanbanColumn({ status, label, tasks: columnTasks }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status })
-  return <div ref={setNodeRef} className={`kanban-column ${isOver ? 'kanban-column-over' : ''}`}><div className="kanban-heading"><span><i className={`column-dot ${status.toLowerCase()}`} />{label}</span><small>{columnTasks.length}</small></div>{columnTasks.map((task) => <KanbanCard task={task} key={task._id} />)}{columnTasks.length === 0 && <div className="kanban-empty">Drop tasks here</div>}</div>
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`kanban-column ${isOver ? "kanban-column-over" : ""}`}
+    >
+      <div className="kanban-heading">
+        <span>
+          <i className={`column-dot ${status.toLowerCase()}`} />
+          {label}
+        </span>
+        <small>{columnTasks.length}</small>
+      </div>
+      {columnTasks.map((task) => (
+        <KanbanCard task={task} key={task._id} />
+      ))}
+      {columnTasks.length === 0 && (
+        <div className="kanban-empty">Drop tasks here</div>
+      )}
+    </div>
+  );
 }
 
 function KanbanPage() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const columns = [['TODO', 'To do'], ['IN_PROGRESS', 'In progress'], ['COMPLETED', 'Completed']]
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [activeTask, setActiveTask] = useState(null)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const columns = [
+    ["TODO", "To do"],
+    ["IN_PROGRESS", "In progress"],
+    ["COMPLETED", "Completed"],
+  ];
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeTask, setActiveTask] = useState(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
 
-  const isStakeholder = user?.role === 'STAKEHOLDER'
-  const canCreate = user?.role === 'ORGANISATION_ADMIN' || user?.role === 'PROJECT_MANAGER' || user?.role === 'TEAM_LEAD'
+  const isStakeholder = user?.role === "STAKEHOLDER";
+  const canCreate =
+    user?.role === "ORGANISATION_ADMIN" ||
+    user?.role === "PROJECT_MANAGER" ||
+    user?.role === "TEAM_LEAD";
 
   useEffect(() => {
-    api.get('/api/tasks').then(({ data }) => setItems(data.tasks || []))
-      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load tasks.'))
-      .finally(() => setLoading(false))
-  }, [])
+    api
+      .get("/api/tasks")
+      .then(({ data }) => setItems(data.tasks || []))
+      .catch((requestError) =>
+        setError(
+          requestError.response?.data?.message || "Unable to load tasks.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, []);
 
   async function moveTask(task, status) {
     if (isStakeholder) {
-      setError('Stakeholders have read-only visibility. Task updates are disabled.')
-      return
+      setError(
+        "Stakeholders have read-only visibility. Task updates are disabled.",
+      );
+      return;
     }
-    if (user?.role === 'MEMBER') {
-      const assignedId = (task.assignedTo?._id || task.assignedTo)?.toString()
+    if (user?.role === "MEMBER") {
+      const assignedId = (task.assignedTo?._id || task.assignedTo)?.toString();
       if (assignedId !== user?.id) {
-        setError('Members may only update status for tasks assigned to them.')
-        return
+        setError("Members may only update status for tasks assigned to them.");
+        return;
       }
     }
-    const previous = items
-    setItems((current) => current.map((item) => item._id === task._id ? { ...item, status } : item))
+    const previous = items;
+    setItems((current) =>
+      current.map((item) =>
+        item._id === task._id ? { ...item, status } : item,
+      ),
+    );
     try {
-      const { data } = await api.patch(`/api/tasks/${task._id}`, { status })
-      setItems((current) => current.map((item) => item._id === task._id ? data.task : item))
-      setError('')
+      const { data } = await api.patch(`/api/tasks/${task._id}`, { status });
+      setItems((current) =>
+        current.map((item) => (item._id === task._id ? data.task : item)),
+      );
+      setError("");
     } catch (requestError) {
-      setItems(previous)
-      setError(requestError.response?.data?.message || 'Unable to update task status.')
+      setItems(previous);
+      setError(
+        requestError.response?.data?.message || "Unable to update task status.",
+      );
     }
   }
 
   function onDragStart({ active }) {
-    if (isStakeholder) return
-    setActiveTask(items.find((task) => task._id === active.id) || null)
+    if (isStakeholder) return;
+    setActiveTask(items.find((task) => task._id === active.id) || null);
   }
 
   function onDragEnd({ active, over }) {
-    setActiveTask(null)
-    if (isStakeholder) return
-    const task = items.find((item) => item._id === active.id)
-    if (task && over && columns.some(([status]) => status === over.id) && task.status !== over.id) {
-      moveTask(task, over.id)
+    setActiveTask(null);
+    if (isStakeholder) return;
+    const task = items.find((item) => item._id === active.id);
+    if (
+      task &&
+      over &&
+      columns.some(([status]) => status === over.id) &&
+      task.status !== over.id
+    ) {
+      moveTask(task, over.id);
     }
   }
 
-  if (loading) return <div className="loading-screen"><div className="spinner" />Loading board...</div>
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        Loading board...
+      </div>
+    );
 
   return (
     <>
       <PageHeader
         eyebrow="Workspace"
         title="Kanban"
-        description={isStakeholder ? 'Read-only board view across projects.' : 'Drag tasks between columns to update their status.'}
-        action={canCreate && <Button icon={Plus} onClick={() => navigate('/tasks/new')}>New task</Button>}
+        description={
+          isStakeholder
+            ? "Read-only board view across projects."
+            : "Drag tasks between columns to update their status."
+        }
+        action={
+          canCreate && (
+            <Button icon={Plus} onClick={() => navigate("/tasks/new")}>
+              New task
+            </Button>
+          )
+        }
       />
       {isStakeholder && (
-        <div style={{ background: '#fef3c7', border: '1px solid #fde68a', color: '#92400e', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
-          <strong>Stakeholder View:</strong> You have read-only visibility. Task card dragging and status changes are disabled.
+        <div
+          style={{
+            background: "#fef3c7",
+            border: "1px solid #fde68a",
+            color: "#92400e",
+            padding: "10px 14px",
+            borderRadius: 8,
+            fontSize: 13,
+            marginBottom: 14,
+          }}
+        >
+          <strong>Stakeholder View:</strong> You have read-only visibility. Task
+          card dragging and status changes are disabled.
         </div>
       )}
       <ProjectError message={error} />
       {items.length === 0 ? (
-        <Card><EmptyState title="No tasks yet" description="Create a task to start using your board." action={canCreate && <Button onClick={() => navigate('/tasks/new')}>Create task</Button>} /></Card>
+        <Card>
+          <EmptyState
+            title="No tasks yet"
+            description="Create a task to start using your board."
+            action={
+              canCreate && (
+                <Button onClick={() => navigate("/tasks/new")}>
+                  Create task
+                </Button>
+              )
+            }
+          />
+        </Card>
       ) : (
-        <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+        <DndContext
+          sensors={sensors}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+        >
           <div className="kanban-board">
             {columns.map(([status, label]) => (
-              <KanbanColumn key={status} status={status} label={label} tasks={items.filter((task) => task.status === status)} />
+              <KanbanColumn
+                key={status}
+                status={status}
+                label={label}
+                tasks={items.filter((task) => task.status === status)}
+              />
             ))}
           </div>
-          <DragOverlay>{activeTask ? <KanbanCard task={activeTask} overlay /> : null}</DragOverlay>
+          <DragOverlay>
+            {activeTask ? <KanbanCard task={activeTask} overlay /> : null}
+          </DragOverlay>
         </DndContext>
       )}
     </>
-  )
+  );
 }
 
 function IssuesPage() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [items, setItems] = useState([])
-  const [filters, setFilters] = useState({ status: '', severity: '' })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]);
+  const [filters, setFilters] = useState({ status: "", severity: "" });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const isStakeholder = user?.role === 'STAKEHOLDER'
-  const canDelete = user?.role === 'ORGANISATION_ADMIN' || user?.role === 'PROJECT_MANAGER'
+  const isStakeholder = user?.role === "STAKEHOLDER";
+  const canDelete =
+    user?.role === "ORGANISATION_ADMIN" || user?.role === "PROJECT_MANAGER";
 
   async function loadIssues() {
-    setLoading(true)
+    setLoading(true);
     try {
-      const { data } = await api.get('/api/issues', { params: { status: filters.status || undefined, severity: filters.severity || undefined } })
-      setItems(data.issues || [])
-      setError('')
+      const { data } = await api.get("/api/issues", {
+        params: {
+          status: filters.status || undefined,
+          severity: filters.severity || undefined,
+        },
+      });
+      setItems(data.issues || []);
+      setError("");
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to load issues.')
+      setError(
+        requestError.response?.data?.message || "Unable to load issues.",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  useEffect(() => { loadIssues() }, [filters.status, filters.severity])
+  useEffect(() => {
+    loadIssues();
+  }, [filters.status, filters.severity]);
 
   async function deleteIssue(id) {
-    if (!window.confirm('Delete this issue?')) return
+    if (!window.confirm("Delete this issue?")) return;
     try {
-      await api.delete(`/api/issues/${id}`)
-      setItems((current) => current.filter((issue) => issue._id !== id))
+      await api.delete(`/api/issues/${id}`);
+      setItems((current) => current.filter((issue) => issue._id !== id));
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to delete issue.')
+      setError(
+        requestError.response?.data?.message || "Unable to delete issue.",
+      );
     }
   }
 
@@ -876,18 +1424,42 @@ function IssuesPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Issues"
-        description={isStakeholder ? 'Read-only issue tracker.' : 'Resolve blockers before they slow your team down.'}
-        action={!isStakeholder && <Button variant="danger" icon={Plus} onClick={() => navigate('/issues/new')}>Report issue</Button>}
+        description={
+          isStakeholder
+            ? "Read-only issue tracker."
+            : "Resolve blockers before they slow your team down."
+        }
+        action={
+          !isStakeholder && (
+            <Button
+              variant="danger"
+              icon={Plus}
+              onClick={() => navigate("/issues/new")}
+            >
+              Report issue
+            </Button>
+          )
+        }
       />
       <div className="toolbar">
-        <select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value })}>
+        <select
+          value={filters.status}
+          onChange={(event) =>
+            setFilters({ ...filters, status: event.target.value })
+          }
+        >
           <option value="">All statuses</option>
           <option value="OPEN">Open</option>
           <option value="IN_PROGRESS">In progress</option>
           <option value="RESOLVED">Resolved</option>
           <option value="CLOSED">Closed</option>
         </select>
-        <select value={filters.severity} onChange={(event) => setFilters({ ...filters, severity: event.target.value })}>
+        <select
+          value={filters.severity}
+          onChange={(event) =>
+            setFilters({ ...filters, severity: event.target.value })
+          }
+        >
           <option value="">All severity</option>
           <option value="CRITICAL">Critical</option>
           <option value="HIGH">High</option>
@@ -897,9 +1469,27 @@ function IssuesPage() {
       </div>
       <ProjectError message={error} />
       {loading ? (
-        <div className="loading-screen"><div className="spinner" />Loading issues...</div>
+        <div className="loading-screen">
+          <div className="spinner" />
+          Loading issues...
+        </div>
       ) : items.length === 0 ? (
-        <Card><EmptyState title="No issues found" description="Report an issue when something needs attention." action={!isStakeholder && <Button variant="danger" onClick={() => navigate('/issues/new')}>Report issue</Button>} /></Card>
+        <Card>
+          <EmptyState
+            title="No issues found"
+            description="Report an issue when something needs attention."
+            action={
+              !isStakeholder && (
+                <Button
+                  variant="danger"
+                  onClick={() => navigate("/issues/new")}
+                >
+                  Report issue
+                </Button>
+              )
+            }
+          />
+        </Card>
       ) : (
         <Card className="table-card">
           <div className="data-table">
@@ -914,110 +1504,194 @@ function IssuesPage() {
             {items.map((issue) => (
               <div className="table-row" key={issue._id}>
                 <span className="task-title">
-                  <span className="issue-marker"><CircleAlert size={15} /></span>
-                  <Link to={`/issues/${issue._id}`}><strong>{issue.title}</strong></Link>
+                  <span className="issue-marker">
+                    <CircleAlert size={15} />
+                  </span>
+                  <Link to={`/issues/${issue._id}`}>
+                    <strong>{issue.title}</strong>
+                  </Link>
                 </span>
                 <span>{issue.project?.name}</span>
                 <span>{issue.reportedBy?.name}</span>
-                <span>{issue.assignedTo?.name || 'Unassigned'}</span>
-                <span><Badge tone={issue.severity}>{issue.severity}</Badge></span>
-                <span><Badge tone={issue.status}>{issue.status.replace('_', ' ')}</Badge></span>
-                {canDelete && <button className="more-button" onClick={() => deleteIssue(issue._id)}><X size={15} /></button>}
+                <span>{issue.assignedTo?.name || "Unassigned"}</span>
+                <span>
+                  <Badge tone={issue.severity}>{issue.severity}</Badge>
+                </span>
+                <span>
+                  <Badge tone={issue.status}>
+                    {issue.status.replace("_", " ")}
+                  </Badge>
+                </span>
+                {canDelete && (
+                  <button
+                    className="more-button"
+                    onClick={() => deleteIssue(issue._id)}
+                  >
+                    <X size={15} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
         </Card>
       )}
     </>
-  )
+  );
 }
 
 function IssueForm({ edit = false }) {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [projectsList, setProjectsList] = useState([])
-  const [tasksList, setTasksList] = useState([])
-  const [form, setForm] = useState({ title: '', description: '', project: '', task: '', assignedTo: '', severity: 'MEDIUM', status: 'OPEN' })
-  const [loading, setLoading] = useState(edit)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [projectsList, setProjectsList] = useState([]);
+  const [tasksList, setTasksList] = useState([]);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    project: "",
+    task: "",
+    assignedTo: "",
+    severity: "MEDIUM",
+    status: "OPEN",
+  });
+  const [loading, setLoading] = useState(edit);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     Promise.all([
-      api.get('/api/projects'),
-      api.get('/api/tasks'),
+      api.get("/api/projects"),
+      api.get("/api/tasks"),
       edit ? api.get(`/api/issues/${id}`) : Promise.resolve(null),
     ])
       .then(([projectsResponse, tasksResponse, issueResponse]) => {
-        setProjectsList(projectsResponse.data.projects || [])
-        setTasksList(tasksResponse.data.tasks || [])
+        setProjectsList(projectsResponse.data.projects || []);
+        setTasksList(tasksResponse.data.tasks || []);
         if (issueResponse) {
-          const issue = issueResponse.data.issue
+          const issue = issueResponse.data.issue;
           setForm({
             title: issue.title,
-            description: issue.description || '',
+            description: issue.description || "",
             project: issue.project?._id,
-            task: issue.task?._id || '',
-            assignedTo: issue.assignedTo?._id || '',
+            task: issue.task?._id || "",
+            assignedTo: issue.assignedTo?._id || "",
             severity: issue.severity,
             status: issue.status,
-          })
+          });
         }
       })
-      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load issue form.'))
-      .finally(() => setLoading(false))
-  }, [edit, id])
+      .catch((requestError) =>
+        setError(
+          requestError.response?.data?.message || "Unable to load issue form.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, [edit, id]);
 
-  const selectedProject = projectsList.find((project) => project._id === form.project)
-  const projectTasks = tasksList.filter((task) => task.project?._id === form.project)
+  const selectedProject = projectsList.find(
+    (project) => project._id === form.project,
+  );
+  const projectTasks = tasksList.filter(
+    (task) => task.project?._id === form.project,
+  );
 
   const eligibleAssignees = useMemo(() => {
-    if (!selectedProject) return []
-    const list = []
-    if (selectedProject.manager) list.push(selectedProject.manager)
-    if (selectedProject.teamLead) list.push(selectedProject.teamLead)
-    if (Array.isArray(selectedProject.members)) list.push(...selectedProject.members)
-    const seen = new Set()
+    if (!selectedProject) return [];
+    const list = [];
+    if (selectedProject.manager) list.push(selectedProject.manager);
+    if (selectedProject.teamLead) list.push(selectedProject.teamLead);
+    if (Array.isArray(selectedProject.members))
+      list.push(...selectedProject.members);
+    const seen = new Set();
     return list.filter((item) => {
-      const uId = (item?._id || item)?.toString()
-      if (!uId || seen.has(uId)) return false
-      seen.add(uId)
-      return true
-    })
-  }, [selectedProject])
+      const uId = (item?._id || item)?.toString();
+      if (!uId || seen.has(uId)) return false;
+      seen.add(uId);
+      return true;
+    });
+  }, [selectedProject]);
 
-  function update(event) { setForm({ ...form, [event.target.name]: event.target.value }) }
+  function update(event) {
+    setForm({ ...form, [event.target.name]: event.target.value });
+  }
 
   async function submit(event) {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
-    const payload = { ...form, task: form.task || undefined, assignedTo: form.assignedTo || undefined }
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    const payload = {
+      ...form,
+      task: form.task || undefined,
+      assignedTo: form.assignedTo || undefined,
+    };
     try {
-      const response = edit ? await api.put(`/api/issues/${id}`, payload) : await api.post('/api/issues', payload)
-      navigate(`/issues/${response.data.issue._id}`)
+      const response = edit
+        ? await api.put(`/api/issues/${id}`, payload)
+        : await api.post("/api/issues", payload);
+      navigate(`/issues/${response.data.issue._id}`);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to save issue.')
+      setError(requestError.response?.data?.message || "Unable to save issue.");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
-  if (loading) return <div className="loading-screen"><div className="spinner" />Loading issue...</div>
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        Loading issue...
+      </div>
+    );
 
   return (
     <>
-      <PageHeader eyebrow="Workspace" title={edit ? 'Edit issue' : 'Report an issue'} description="Capture a blocker so the right person can resolve it." />
+      <PageHeader
+        eyebrow="Workspace"
+        title={edit ? "Edit issue" : "Report an issue"}
+        description="Capture a blocker so the right person can resolve it."
+      />
       <Card className="form-card">
         <form onSubmit={submit}>
-          <label>Title<input name="title" value={form.title} onChange={update} required placeholder="Issue title" /></label>
-          <label>Description<textarea name="description" value={form.description} onChange={update} rows="4" placeholder="Describe the issue" /></label>
+          <label>
+            Title
+            <input
+              name="title"
+              value={form.title}
+              onChange={update}
+              required
+              placeholder="Issue title"
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={update}
+              rows="4"
+              placeholder="Describe the issue"
+            />
+          </label>
           <label>
             Project
-            <select name="project" value={form.project} onChange={(event) => setForm({ ...form, project: event.target.value, task: '', assignedTo: '' })} required>
+            <select
+              name="project"
+              value={form.project}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  project: event.target.value,
+                  task: "",
+                  assignedTo: "",
+                })
+              }
+              required
+            >
               <option value="">Select project</option>
               {projectsList.map((project) => (
-                <option key={project._id} value={project._id}>{project.name}</option>
+                <option key={project._id} value={project._id}>
+                  {project.name}
+                </option>
               ))}
             </select>
           </label>
@@ -1026,7 +1700,9 @@ function IssueForm({ edit = false }) {
             <select name="task" value={form.task} onChange={update}>
               <option value="">No related task</option>
               {projectTasks.map((task) => (
-                <option key={task._id} value={task._id}>{task.title}</option>
+                <option key={task._id} value={task._id}>
+                  {task.title}
+                </option>
               ))}
             </select>
           </label>
@@ -1035,100 +1711,253 @@ function IssueForm({ edit = false }) {
             <select name="assignedTo" value={form.assignedTo} onChange={update}>
               <option value="">Unassigned</option>
               {eligibleAssignees.map((member) => (
-                <option key={member._id} value={member._id}>{member.name} ({ROLE_LABELS[member.role] || member.role || 'Member'})</option>
+                <option key={member._id} value={member._id}>
+                  {member.name} (
+                  {ROLE_LABELS[member.role] || member.role || "Member"})
+                </option>
               ))}
             </select>
           </label>
           <div className="form-row">
-            <label>Priority / Severity<select name="severity" value={form.severity} onChange={update}><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option><option value="CRITICAL">Critical</option></select></label>
-            <label>Status<select name="status" value={form.status} onChange={update}><option value="OPEN">Open</option><option value="IN_PROGRESS">In progress</option><option value="RESOLVED">Resolved</option><option value="CLOSED">Closed</option></select></label>
+            <label>
+              Priority / Severity
+              <select name="severity" value={form.severity} onChange={update}>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="CRITICAL">Critical</option>
+              </select>
+            </label>
+            <label>
+              Status
+              <select name="status" value={form.status} onChange={update}>
+                <option value="OPEN">Open</option>
+                <option value="IN_PROGRESS">In progress</option>
+                <option value="RESOLVED">Resolved</option>
+                <option value="CLOSED">Closed</option>
+              </select>
+            </label>
           </div>
           <ProjectError message={error} />
-          <Button type="submit" variant="danger" disabled={saving}>{saving ? 'Saving...' : edit ? 'Save changes' : 'Report issue'}</Button>
+          <Button type="submit" variant="danger" disabled={saving}>
+            {saving ? "Saving..." : edit ? "Save changes" : "Report issue"}
+          </Button>
         </form>
       </Card>
     </>
-  )
+  );
 }
 
 function IssueDetailPage() {
-  const { id } = useParams()
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [issue, setIssue] = useState(null)
-  const [error, setError] = useState('')
-  useEffect(() => { api.get(`/api/issues/${id}`).then(({ data }) => setIssue(data.issue)).catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load issue.')) }, [id])
-  async function deleteIssue() { if (!window.confirm('Delete this issue?')) return; try { await api.delete(`/api/issues/${id}`); navigate('/issues') } catch (requestError) { setError(requestError.response?.data?.message || 'Unable to delete issue.') } }
-  if (!issue) return error ? <ProjectError message={error} /> : <div className="loading-screen"><div className="spinner" />Loading issue...</div>
-  const canManage = user?.role === 'PROJECT_MANAGER'
-  return <><PageHeader eyebrow="Issue details" title={issue.title} description={issue.description || 'No description provided.'} action={<div className="hero-actions">{canManage && <Link to={`/issues/${id}/edit`} className="button button-secondary">Edit issue</Link>}{canManage && <Button variant="danger" onClick={deleteIssue}>Delete</Button>}</div>} /><Card className="detail-card"><div className="section-heading"><h2>Issue information</h2><Badge tone={issue.status}>{issue.status.replace('_', ' ')}</Badge></div><div className="project-meta"><span>Project: {issue.project?.name}</span><span>Severity: {issue.severity}</span><span>Reported by: {issue.reportedBy?.name}</span><span>Assigned to: {issue.assignedTo?.name || 'Unassigned'}</span>{issue.task && <span>Task: {issue.task.title}</span>}</div></Card></>
+  const { id } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [issue, setIssue] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    api
+      .get(`/api/issues/${id}`)
+      .then(({ data }) => setIssue(data.issue))
+      .catch((requestError) =>
+        setError(
+          requestError.response?.data?.message || "Unable to load issue.",
+        ),
+      );
+  }, [id]);
+  async function deleteIssue() {
+    if (!window.confirm("Delete this issue?")) return;
+    try {
+      await api.delete(`/api/issues/${id}`);
+      navigate("/issues");
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message || "Unable to delete issue.",
+      );
+    }
+  }
+  if (!issue)
+    return error ? (
+      <ProjectError message={error} />
+    ) : (
+      <div className="loading-screen">
+        <div className="spinner" />
+        Loading issue...
+      </div>
+    );
+  const canManage = user?.role === "PROJECT_MANAGER";
+  return (
+    <>
+      <PageHeader
+        eyebrow="Issue details"
+        title={issue.title}
+        description={issue.description || "No description provided."}
+        action={
+          <div className="hero-actions">
+            {canManage && (
+              <Link
+                to={`/issues/${id}/edit`}
+                className="button button-secondary"
+              >
+                Edit issue
+              </Link>
+            )}
+            {canManage && (
+              <Button variant="danger" onClick={deleteIssue}>
+                Delete
+              </Button>
+            )}
+          </div>
+        }
+      />
+      <Card className="detail-card">
+        <div className="section-heading">
+          <h2>Issue information</h2>
+          <Badge tone={issue.status}>{issue.status.replace("_", " ")}</Badge>
+        </div>
+        <div className="project-meta">
+          <span>Project: {issue.project?.name}</span>
+          <span>Severity: {issue.severity}</span>
+          <span>Reported by: {issue.reportedBy?.name}</span>
+          <span>Assigned to: {issue.assignedTo?.name || "Unassigned"}</span>
+          {issue.task && <span>Task: {issue.task.title}</span>}
+        </div>
+      </Card>
+    </>
+  );
 }
 
 function ReportsPage() {
-  const [reports, setReports] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [reports, setReports] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [period, setPeriod] = useState("this-month");
 
   useEffect(() => {
     async function loadReports() {
-      setLoading(true)
-      setError('')
+      setLoading(true);
+      setError("");
       try {
-        const { data } = await api.get('/api/reports')
-        setReports(data.reports)
+        const { data } = await api.get("/api/reports", { params: { period } });
+        setReports(data.reports);
       } catch (requestError) {
-        setError(requestError.response?.data?.message || 'Unable to load reports.')
+        setError(
+          requestError.response?.data?.message || "Unable to load reports.",
+        );
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
-    loadReports()
-  }, [])
+    loadReports();
+  }, [period]);
+
+  function periodControl() {
+    return (
+      <select
+        className="report-period-select"
+        value={period}
+        onChange={(event) => setPeriod(event.target.value)}
+        aria-label="Report period"
+      >
+        <option value="this-month">This month</option>
+        <option value="last-month">Last month</option>
+        <option value="all-time">All time</option>
+      </select>
+    );
+  }
 
   if (loading) {
     return (
       <>
-        <PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} />
-        <div className="loading-screen"><div className="spinner" />Loading reports...</div>
+        <PageHeader
+          eyebrow="Insights"
+          title="Reports"
+          description="A clear view of progress across your workspace."
+          action={periodControl()}
+        />
+        <div className="loading-screen">
+          <div className="spinner" />
+          Loading reports...
+        </div>
       </>
-    )
+    );
   }
 
   if (error) {
     return (
       <>
-        <PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} />
+        <PageHeader
+          eyebrow="Insights"
+          title="Reports"
+          description="A clear view of progress across your workspace."
+          action={periodControl()}
+        />
         <ProjectError message={error} />
       </>
-    )
+    );
   }
 
   if (!reports) {
     return (
       <>
-        <PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} />
-        <Card><EmptyState title="No data available" description="Create projects, tasks, and issues to see insights here." /></Card>
+        <PageHeader
+          eyebrow="Insights"
+          title="Reports"
+          description="A clear view of progress across your workspace."
+          action={periodControl()}
+        />
+        <Card>
+          <EmptyState
+            title="No data available"
+            description="Create projects, tasks, and issues to see insights here."
+          />
+        </Card>
       </>
-    )
+    );
   }
 
-  const { projects, tasks, issues, projectProgress } = reports
+  const { projects, tasks, issues, projectProgress } = reports;
 
   const taskStatusData = [
-    { name: 'To do', value: tasks.todo },
-    { name: 'In progress', value: tasks.inProgress },
-    { name: 'Completed', value: tasks.completed },
-  ]
+    { name: "To do", value: tasks.todo },
+    { name: "In progress", value: tasks.inProgress },
+    { name: "Completed", value: tasks.completed },
+  ];
 
   return (
     <>
-      <PageHeader eyebrow="Insights" title="Reports" description="A clear view of progress across your workspace." action={<Button variant="secondary">This month <ChevronDown size={15} /></Button>} />
+      <PageHeader
+        eyebrow="Insights"
+        title="Reports"
+        description="A clear view of progress across your workspace."
+        action={periodControl()}
+      />
       <div className="stat-grid compact-stats">
-        {[['Total projects', projects.total], ['Active projects', projects.active], ['Completed projects', projects.completed], ['Total tasks', tasks.total], ['To do', tasks.todo], ['In progress', tasks.inProgress], ['Completed tasks', tasks.completed], ['Total issues', issues.total], ['Open issues', issues.open], ['Resolved issues', issues.resolved]].map(([label, value]) => (
+        {[
+          ["Total projects", projects.total, "/projects"],
+          ["Active projects", projects.active, "/projects?status=ACTIVE"],
+          [
+            "Completed projects",
+            projects.completed,
+            "/projects?status=COMPLETED",
+          ],
+          ["Total tasks", tasks.total, "/tasks"],
+          ["To do", tasks.todo, "/tasks?status=TODO"],
+          ["In progress", tasks.inProgress, "/tasks?status=IN_PROGRESS"],
+          ["Completed tasks", tasks.completed, "/tasks?status=COMPLETED"],
+          ["Total issues", issues.total, "/issues"],
+          ["Open issues", issues.open, "/issues?status=OPEN"],
+          ["Resolved issues", issues.resolved, "/issues?status=RESOLVED"],
+        ].map(([label, value, href]) => (
           <Card className="mini-stat" key={label}>
             <span>{label}</span>
             <strong>{value}</strong>
-            <small>Across all projects</small>
+            <div className="mini-stat-footer">
+              <small>Across all projects</small>
+              <Link to={href} className="mini-stat-link">
+                View
+                <ArrowRight size={13} />
+              </Link>
+            </div>
           </Card>
         ))}
       </div>
@@ -1140,17 +1969,26 @@ function ReportsPage() {
               <p>Workload distribution</p>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={taskStatusData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8ebf0" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#5966d8" radius={[5, 5, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="report-chart-frame">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={taskStatusData}
+                margin={{ top: 8, right: 12, left: -18, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#e8ebf0"
+                />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#5966d8" radius={[5, 5, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </Card>
-        <Card>
+        <Card className="report-chart-card">
           <div className="section-heading">
             <div>
               <h2>Tasks by priority</h2>
@@ -1158,14 +1996,24 @@ function ReportsPage() {
             </div>
           </div>
           <div className="donut-chart">
-            <ResponsiveContainer width="55%" height={220}>
-              <PieChart>
-                <Pie data={tasks.byPriority} dataKey="value" innerRadius={55} outerRadius={82} paddingAngle={4}>
-                  {tasks.byPriority.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="donut-visual">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={tasks.byPriority}
+                    dataKey="value"
+                    innerRadius={55}
+                    outerRadius={82}
+                    paddingAngle={4}
+                  >
+                    {tasks.byPriority.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
             <div className="legend">
               {tasks.byPriority.map((item) => (
                 <span key={item.name}>
@@ -1178,7 +2026,7 @@ function ReportsPage() {
           </div>
         </Card>
       </div>
-      <Card>
+      <Card className="report-chart-card">
         <div className="section-heading">
           <div>
             <h2>Issues by severity</h2>
@@ -1186,14 +2034,24 @@ function ReportsPage() {
           </div>
         </div>
         <div className="donut-chart">
-          <ResponsiveContainer width="55%" height={220}>
-            <PieChart>
-              <Pie data={issues.bySeverity} dataKey="value" innerRadius={55} outerRadius={82} paddingAngle={4}>
-                {issues.bySeverity.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="donut-visual">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={issues.bySeverity}
+                  dataKey="value"
+                  innerRadius={55}
+                  outerRadius={82}
+                  paddingAngle={4}
+                >
+                  {issues.bySeverity.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
           <div className="legend">
             {issues.bySeverity.map((item) => (
               <span key={item.name}>
@@ -1205,7 +2063,7 @@ function ReportsPage() {
           </div>
         </div>
       </Card>
-      <Card>
+      <Card className="report-progress-card">
         <div className="section-heading">
           <div>
             <h2>Project progress</h2>
@@ -1225,83 +2083,104 @@ function ReportsPage() {
               </div>
             ))
           ) : (
-            <EmptyState title="No projects yet" description="Create a project to track progress." />
+            <EmptyState
+              title="No projects yet"
+              description="Create a project to track progress."
+            />
           )}
         </div>
       </Card>
     </>
-  )
+  );
 }
 
 function TeamPage() {
-  const { user } = useAuth()
-  const [members, setMembers] = useState([])
-  const [tasks, setTasks] = useState([])
-  const [projects, setProjects] = useState([])
-  const [filterRole, setFilterRole] = useState('ALL')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const { user } = useAuth();
+  const [members, setMembers] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [filterRole, setFilterRole] = useState("ALL");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [showInviteModal, setShowInviteModal] = useState(false)
-  const [inviteForm, setInviteForm] = useState({ name: '', email: '', password: '', role: 'MEMBER' })
-  const [inviting, setInviting] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "MEMBER",
+  });
+  const [inviting, setInviting] = useState(false);
 
-  const isOrgAdmin = user?.role === 'ORGANISATION_ADMIN'
+  const isOrgAdmin = user?.role === "ORGANISATION_ADMIN";
 
   async function loadTeam() {
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError("");
     try {
-      const [usersResponse, tasksResponse, projectsResponse] = await Promise.all([
-        api.get('/api/users'),
-        api.get('/api/tasks'),
-        api.get('/api/projects'),
-      ])
-      setMembers(usersResponse.data.users || [])
-      setTasks(tasksResponse.data.tasks || [])
-      setProjects(projectsResponse.data.projects || [])
+      const [usersResponse, tasksResponse, projectsResponse] =
+        await Promise.all([
+          api.get("/api/users"),
+          api.get("/api/tasks"),
+          api.get("/api/projects"),
+        ]);
+      setMembers(usersResponse.data.users || []);
+      setTasks(tasksResponse.data.tasks || []);
+      setProjects(projectsResponse.data.projects || []);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to load team.')
+      setError(requestError.response?.data?.message || "Unable to load team.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  useEffect(() => { loadTeam() }, [])
+  useEffect(() => {
+    loadTeam();
+  }, []);
 
   async function handleRoleChange(userId, newRole) {
-    setError('')
-    setSuccess('')
+    setError("");
+    setSuccess("");
     try {
-      const res = await api.patch(`/api/users/${userId}/role`, { role: newRole })
-      setMembers((current) => current.map((m) => (m._id === userId ? { ...m, role: newRole } : m)))
-      setSuccess(res.data.message || 'User role updated.')
+      const res = await api.patch(`/api/users/${userId}/role`, {
+        role: newRole,
+      });
+      setMembers((current) =>
+        current.map((m) => (m._id === userId ? { ...m, role: newRole } : m)),
+      );
+      setSuccess(res.data.message || "User role updated.");
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to change user role.')
+      setError(
+        requestError.response?.data?.message || "Unable to change user role.",
+      );
     }
   }
 
   async function handleInvite(e) {
-    e.preventDefault()
-    setInviting(true)
-    setError('')
-    setSuccess('')
+    e.preventDefault();
+    setInviting(true);
+    setError("");
+    setSuccess("");
     try {
-      const res = await api.post('/api/users/invite', inviteForm)
-      setMembers((current) => [...current, res.data.user])
-      setShowInviteModal(false)
-      setInviteForm({ name: '', email: '', password: '', role: 'MEMBER' })
-      setSuccess(res.data.message || 'User invited successfully.')
+      const res = await api.post("/api/users/invite", inviteForm);
+      setMembers((current) => [...current, res.data.user]);
+      setShowInviteModal(false);
+      setInviteForm({ name: "", email: "", password: "", role: "MEMBER" });
+      setSuccess(res.data.message || "User invited successfully.");
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to invite user.')
+      setError(
+        requestError.response?.data?.message || "Unable to invite user.",
+      );
     } finally {
-      setInviting(false)
+      setInviting(false);
     }
   }
 
   function countMemberTasks(memberId) {
-    return tasks.filter((task) => (task.assignedTo?._id || task.assignedTo) === memberId).length
+    return tasks.filter(
+      (task) => (task.assignedTo?._id || task.assignedTo) === memberId,
+    ).length;
   }
 
   function countMemberProjects(memberId) {
@@ -1309,23 +2188,33 @@ function TeamPage() {
       (project) =>
         (project.manager?._id || project.manager) === memberId ||
         (project.teamLead?._id || project.teamLead) === memberId ||
-        project.members?.some((member) => (member._id || member) === memberId) ||
-        project.stakeholders?.some((s) => (s._id || s) === memberId)
-    ).length
+        project.members?.some(
+          (member) => (member._id || member) === memberId,
+        ) ||
+        project.stakeholders?.some((s) => (s._id || s) === memberId),
+    ).length;
   }
 
   const roleBadgeTone = {
-    ORGANISATION_ADMIN: 'active',
-    PROJECT_MANAGER: 'active',
-    TEAM_LEAD: 'progress',
-    MEMBER: 'neutral',
-    STAKEHOLDER: 'planned',
-  }
+    ORGANISATION_ADMIN: "active",
+    PROJECT_MANAGER: "active",
+    TEAM_LEAD: "progress",
+    MEMBER: "neutral",
+    STAKEHOLDER: "planned",
+  };
 
   const filteredMembers =
-    filterRole === 'ALL' ? members : members.filter((m) => m.role === filterRole)
+    filterRole === "ALL"
+      ? members
+      : members.filter((m) => m.role === filterRole);
 
-  if (loading) return <div className="loading-screen"><div className="spinner" />Loading team...</div>
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        Loading team...
+      </div>
+    );
 
   return (
     <>
@@ -1342,24 +2231,34 @@ function TeamPage() {
         }
       />
       {success && (
-        <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
+        <div
+          style={{
+            background: "#ecfdf5",
+            border: "1px solid #a7f3d0",
+            color: "#065f46",
+            padding: "10px 14px",
+            borderRadius: 8,
+            fontSize: 13,
+            marginBottom: 14,
+          }}
+        >
           {success}
         </div>
       )}
       <ProjectError message={error} />
 
-      <div className="toolbar" style={{ flexWrap: 'wrap', gap: 8 }}>
+      <div className="toolbar" style={{ flexWrap: "wrap", gap: 8 }}>
         {[
-          ['ALL', 'All Members'],
-          ['ORGANISATION_ADMIN', 'Admins'],
-          ['PROJECT_MANAGER', 'Project Managers'],
-          ['TEAM_LEAD', 'Team Leads'],
-          ['MEMBER', 'Developers / Members'],
-          ['STAKEHOLDER', 'Stakeholders'],
+          ["ALL", "All Members"],
+          ["ORGANISATION_ADMIN", "Admins"],
+          ["PROJECT_MANAGER", "Project Managers"],
+          ["TEAM_LEAD", "Team Leads"],
+          ["MEMBER", "Developers / Members"],
+          ["STAKEHOLDER", "Stakeholders"],
         ].map(([r, label]) => (
           <Button
             key={r}
-            variant={filterRole === r ? 'primary' : 'secondary'}
+            variant={filterRole === r ? "primary" : "secondary"}
             onClick={() => setFilterRole(r)}
           >
             {label}
@@ -1368,24 +2267,82 @@ function TeamPage() {
       </div>
 
       {showInviteModal && (
-        <div className="modal-backdrop" onClick={() => setShowInviteModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 440, background: '#fff', padding: 24, borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowInviteModal(false)}
+        >
+          <div
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: 440,
+              background: "#fff",
+              padding: 24,
+              borderRadius: 12,
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
               <h3 style={{ margin: 0, fontSize: 18 }}>Invite Workspace User</h3>
-              <button className="more-button" onClick={() => setShowInviteModal(false)}><X size={18} /></button>
+              <button
+                className="more-button"
+                onClick={() => setShowInviteModal(false)}
+              >
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleInvite}>
-              <label>Full name
-                <input required value={inviteForm.name} onChange={(e) => setInviteForm({ ...inviteForm, name: e.target.value })} placeholder="Full name" />
+              <label>
+                Full name
+                <input
+                  required
+                  value={inviteForm.name}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, name: e.target.value })
+                  }
+                  placeholder="Full name"
+                />
               </label>
-              <label>Email address
-                <input required type="email" value={inviteForm.email} onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })} placeholder="email@company.com" />
+              <label>
+                Email address
+                <input
+                  required
+                  type="email"
+                  value={inviteForm.email}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, email: e.target.value })
+                  }
+                  placeholder="email@company.com"
+                />
               </label>
-              <label>Temporary password
-                <input required type="password" value={inviteForm.password} onChange={(e) => setInviteForm({ ...inviteForm, password: e.target.value })} placeholder="Min 6 characters" />
+              <label>
+                Temporary password
+                <input
+                  required
+                  type="password"
+                  value={inviteForm.password}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, password: e.target.value })
+                  }
+                  placeholder="Min 6 characters"
+                />
               </label>
-              <label>Assigned role
-                <select value={inviteForm.role} onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}>
+              <label>
+                Assigned role
+                <select
+                  value={inviteForm.role}
+                  onChange={(e) =>
+                    setInviteForm({ ...inviteForm, role: e.target.value })
+                  }
+                >
                   <option value="ORGANISATION_ADMIN">Organisation Admin</option>
                   <option value="PROJECT_MANAGER">Project Manager</option>
                   <option value="TEAM_LEAD">Team Lead</option>
@@ -1393,9 +2350,24 @@ function TeamPage() {
                   <option value="STAKEHOLDER">Stakeholder</option>
                 </select>
               </label>
-              <div style={{ marginTop: 16, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <Button variant="secondary" type="button" onClick={() => setShowInviteModal(false)}>Cancel</Button>
-                <Button type="submit" disabled={inviting}>{inviting ? 'Creating...' : 'Invite user'}</Button>
+              <div
+                style={{
+                  marginTop: 16,
+                  display: "flex",
+                  gap: 10,
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => setShowInviteModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={inviting}>
+                  {inviting ? "Creating..." : "Invite user"}
+                </Button>
               </div>
             </form>
           </div>
@@ -1403,7 +2375,12 @@ function TeamPage() {
       )}
 
       {filteredMembers.length === 0 ? (
-        <Card><EmptyState title="No members found" description="No users match this filter." /></Card>
+        <Card>
+          <EmptyState
+            title="No members found"
+            description="No users match this filter."
+          />
+        </Card>
       ) : (
         <div className="member-grid">
           {filteredMembers.map((member) => (
@@ -1411,22 +2388,27 @@ function TeamPage() {
               <Avatar name={member.name} size="lg" />
               <h2>{member.name}</h2>
               <p>{member.email}</p>
-              <div style={{ margin: '8px 0' }}>
-                <Badge tone={roleBadgeTone[member.role] || 'neutral'}>
+              <div style={{ margin: "8px 0" }}>
+                <Badge tone={roleBadgeTone[member.role] || "neutral"}>
                   {ROLE_LABELS[member.role] || member.role}
                 </Badge>
               </div>
 
               {isOrgAdmin && (
-                <div style={{ marginTop: 8, textAlign: 'left', width: '100%' }}>
-                  <label style={{ fontSize: 11, color: '#64748b' }}>Change role:
+                <div style={{ marginTop: 8, textAlign: "left", width: "100%" }}>
+                  <label style={{ fontSize: 11, color: "#64748b" }}>
+                    Change role:
                     <select
                       className="inline-select"
-                      style={{ width: '100%', marginTop: 4 }}
+                      style={{ width: "100%", marginTop: 4 }}
                       value={member.role}
-                      onChange={(e) => handleRoleChange(member._id, e.target.value)}
+                      onChange={(e) =>
+                        handleRoleChange(member._id, e.target.value)
+                      }
                     >
-                      <option value="ORGANISATION_ADMIN">Organisation Admin</option>
+                      <option value="ORGANISATION_ADMIN">
+                        Organisation Admin
+                      </option>
                       <option value="PROJECT_MANAGER">Project Manager</option>
                       <option value="TEAM_LEAD">Team Lead</option>
                       <option value="MEMBER">Developer / Member</option>
@@ -1437,120 +2419,248 @@ function TeamPage() {
               )}
 
               <div className="member-stats">
-                <span><strong>{countMemberTasks(member._id)}</strong> tasks</span>
-                <span><strong>{countMemberProjects(member._id)}</strong> projects</span>
+                <span>
+                  <strong>{countMemberTasks(member._id)}</strong> tasks
+                </span>
+                <span>
+                  <strong>{countMemberProjects(member._id)}</strong> projects
+                </span>
               </div>
             </Card>
           ))}
         </div>
       )}
     </>
-  )
+  );
 }
 
 function ProfilePage() {
-  const { user } = useAuth()
+  const { user, updateProfile } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    name: user?.name || "",
+    avatar: user?.avatar || "",
+  });
+
+  useEffect(() => {
+    setForm({ name: user?.name || "", avatar: user?.avatar || "" });
+  }, [user]);
+
+  function update(event) {
+    setForm({ ...form, [event.target.name]: event.target.value });
+  }
+
+  function cancelEditing() {
+    setForm({ name: user?.name || "", avatar: user?.avatar || "" });
+    setError("");
+    setEditing(false);
+  }
+
+  async function saveProfile(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await updateProfile({ name: form.name, avatar: form.avatar });
+      setEditing(false);
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message || "Unable to update profile.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <>
-      <PageHeader eyebrow="Account" title="Profile" description="Your account details and workspace role." />
+      <PageHeader
+        eyebrow="Account"
+        title="Profile"
+        description="Your account details and workspace role."
+        action={
+          !editing && (
+            <Button
+              variant="secondary"
+              icon={Pencil}
+              onClick={() => {
+                setError("");
+                setEditing(true);
+              }}
+            >
+              Edit profile
+            </Button>
+          )
+        }
+      />
       <Card className="profile-card">
-        <Avatar name={user?.name || 'Workspace user'} size="xl" />
-        <div>
-          <div className="eyebrow">Personal profile</div>
-          <h2>{user?.name || 'Workspace user'}</h2>
-          <p>{user?.email || 'No email available'}</p>
-          <div style={{ marginTop: 8 }}>
-            <Badge tone="active">{ROLE_LABELS[user?.role] || user?.role || 'Member'}</Badge>
-          </div>
-          <div style={{ marginTop: 12, fontSize: 12, color: '#64748b' }}>
-            {ROLE_DESCRIPTIONS[user?.role]}
-          </div>
-        </div>
+        {editing ? (
+          <form className="profile-edit-form" onSubmit={saveProfile}>
+            <Avatar
+              name={form.name || "Workspace user"}
+              avatar={form.avatar}
+              size="xl"
+            />
+            <label>
+              Name
+              <input name="name" value={form.name} onChange={update} required />
+            </label>
+            <label>
+              Email
+              <input value={user?.email || ""} readOnly disabled />
+              <small>Email cannot be changed.</small>
+            </label>
+            <label>
+              Avatar URL
+              <input
+                name="avatar"
+                value={form.avatar}
+                onChange={update}
+                placeholder="https://example.com/avatar.png"
+              />
+            </label>
+            {error && <ProjectError message={error} />}
+            <div className="form-actions">
+              <Button type="submit" disabled={saving}>
+                {saving ? "Saving..." : "Save profile"}
+              </Button>
+              <Button type="button" variant="secondary" onClick={cancelEditing}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <Avatar
+              name={user?.name || "Workspace user"}
+              avatar={user?.avatar}
+              size="xl"
+            />
+            <div>
+              <div className="eyebrow">Personal profile</div>
+              <h2>{user?.name || "Workspace user"}</h2>
+              <p>{user?.email || "No email available"}</p>
+              <div style={{ marginTop: 8 }}>
+                <Badge tone="active">
+                  {ROLE_LABELS[user?.role] || user?.role || "Member"}
+                </Badge>
+              </div>
+              <div style={{ marginTop: 12, fontSize: 12, color: "#64748b" }}>
+                {ROLE_DESCRIPTIONS[user?.role]}
+              </div>
+            </div>
+          </>
+        )}
       </Card>
     </>
-  )
+  );
 }
 
 function ProjectForm({ edit = false }) {
-  const { id } = useParams()
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [usersList, setUsersList] = useState([])
+  const { id } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [usersList, setUsersList] = useState([]);
   const [form, setForm] = useState({
-    name: '',
-    description: '',
-    startDate: '',
-    deadline: '',
-    status: 'PLANNED',
-    manager: '',
-    teamLead: '',
+    name: "",
+    description: "",
+    startDate: "",
+    deadline: "",
+    status: "PLANNED",
+    manager: "",
+    teamLead: "",
     members: [],
     stakeholders: [],
-  })
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const isOrgAdmin = user?.role === 'ORGANISATION_ADMIN'
+  const isOrgAdmin = user?.role === "ORGANISATION_ADMIN";
 
   useEffect(() => {
     Promise.all([
-      api.get('/api/users'),
+      api.get("/api/users"),
       edit ? api.get(`/api/projects/${id}`) : Promise.resolve(null),
     ])
       .then(([usersRes, projectRes]) => {
-        const allUsers = usersRes.data.users || []
-        setUsersList(allUsers)
+        const allUsers = usersRes.data.users || [];
+        setUsersList(allUsers);
         if (projectRes) {
-          const project = projectRes.data.project
+          const project = projectRes.data.project;
           setForm({
-            name: project.name || '',
-            description: project.description || '',
-            startDate: project.startDate?.slice(0, 10) || '',
-            deadline: project.deadline?.slice(0, 10) || '',
-            status: project.status || 'PLANNED',
-            manager: (project.manager?._id || project.manager || '')?.toString(),
-            teamLead: (project.teamLead?._id || project.teamLead || '')?.toString(),
-            members: (project.members || []).map((m) => (m._id || m).toString()),
-            stakeholders: (project.stakeholders || []).map((s) => (s._id || s).toString()),
-          })
+            name: project.name || "",
+            description: project.description || "",
+            startDate: project.startDate?.slice(0, 10) || "",
+            deadline: project.deadline?.slice(0, 10) || "",
+            status: project.status || "PLANNED",
+            manager: (
+              project.manager?._id ||
+              project.manager ||
+              ""
+            )?.toString(),
+            teamLead: (
+              project.teamLead?._id ||
+              project.teamLead ||
+              ""
+            )?.toString(),
+            members: (project.members || []).map((m) =>
+              (m._id || m).toString(),
+            ),
+            stakeholders: (project.stakeholders || []).map((s) =>
+              (s._id || s).toString(),
+            ),
+          });
         } else {
           setForm((prev) => ({
             ...prev,
-            manager: user?.id || '',
-          }))
+            manager: user?.id || "",
+          }));
         }
       })
-      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load project form.'))
-      .finally(() => setLoading(false))
-  }, [edit, id, user])
+      .catch((requestError) =>
+        setError(
+          requestError.response?.data?.message ||
+            "Unable to load project form.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, [edit, id, user]);
 
-  function update(event) { setForm({ ...form, [event.target.name]: event.target.value }) }
+  function update(event) {
+    setForm({ ...form, [event.target.name]: event.target.value });
+  }
 
   function toggleMember(userId) {
-    const strId = userId.toString()
+    const strId = userId.toString();
     setForm((prev) => {
-      const exists = prev.members.includes(strId)
-      const nextMembers = exists ? prev.members.filter((m) => m !== strId) : [...prev.members, strId]
-      const nextStakeholders = prev.stakeholders.filter((s) => s !== strId)
-      return { ...prev, members: nextMembers, stakeholders: nextStakeholders }
-    })
+      const exists = prev.members.includes(strId);
+      const nextMembers = exists
+        ? prev.members.filter((m) => m !== strId)
+        : [...prev.members, strId];
+      const nextStakeholders = prev.stakeholders.filter((s) => s !== strId);
+      return { ...prev, members: nextMembers, stakeholders: nextStakeholders };
+    });
   }
 
   function toggleStakeholder(userId) {
-    const strId = userId.toString()
+    const strId = userId.toString();
     setForm((prev) => {
-      const exists = prev.stakeholders.includes(strId)
-      const nextStakeholders = exists ? prev.stakeholders.filter((s) => s !== strId) : [...prev.stakeholders, strId]
-      const nextMembers = prev.members.filter((m) => m !== strId)
-      return { ...prev, stakeholders: nextStakeholders, members: nextMembers }
-    })
+      const exists = prev.stakeholders.includes(strId);
+      const nextStakeholders = exists
+        ? prev.stakeholders.filter((s) => s !== strId)
+        : [...prev.stakeholders, strId];
+      const nextMembers = prev.members.filter((m) => m !== strId);
+      return { ...prev, stakeholders: nextStakeholders, members: nextMembers };
+    });
   }
 
   async function submit(event) {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
+    event.preventDefault();
+    setSaving(true);
+    setError("");
     try {
       const payload = {
         name: form.name,
@@ -1562,43 +2672,81 @@ function ProjectForm({ edit = false }) {
         teamLead: form.teamLead || null,
         members: form.members,
         stakeholders: form.stakeholders,
-      }
-      const response = edit ? await api.put(`/api/projects/${id}`, payload) : await api.post('/api/projects', payload)
-      navigate(`/projects/${response.data.project._id}`)
+      };
+      const response = edit
+        ? await api.put(`/api/projects/${id}`, payload)
+        : await api.post("/api/projects", payload);
+      navigate(`/projects/${response.data.project._id}`);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to save project.')
+      setError(
+        requestError.response?.data?.message || "Unable to save project.",
+      );
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
-  if (loading) return <div className="loading-screen"><div className="spinner" />Loading project...</div>
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        Loading project...
+      </div>
+    );
 
   return (
     <>
       <PageHeader
         eyebrow="Workspace"
-        title={edit ? 'Edit project' : 'New project'}
-        description={edit ? 'Update project details and participant roles.' : 'Set up a clear home for your next initiative and assign project roles.'}
+        title={edit ? "Edit project" : "New project"}
+        description={
+          edit
+            ? "Update project details and participant roles."
+            : "Set up a clear home for your next initiative and assign project roles."
+        }
       />
       <Card className="form-card">
         <form onSubmit={submit}>
           <label>
             Project name
-            <input name="name" value={form.name} onChange={update} required placeholder="e.g. Modern Mobile App" />
+            <input
+              name="name"
+              value={form.name}
+              onChange={update}
+              required
+              placeholder="e.g. Modern Mobile App"
+            />
           </label>
           <label>
             Description
-            <textarea name="description" value={form.description} onChange={update} rows="3" placeholder="Add context on project scope" />
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={update}
+              rows="3"
+              placeholder="Add context on project scope"
+            />
           </label>
           <div className="form-row">
             <label>
               Start date
-              <input name="startDate" value={form.startDate} onChange={update} type="date" required />
+              <input
+                name="startDate"
+                value={form.startDate}
+                onChange={update}
+                type="date"
+                required
+              />
             </label>
             <label>
               Deadline
-              <input name="deadline" value={form.deadline} onChange={update} type="date" required />
+              <input
+                name="deadline"
+                value={form.deadline}
+                onChange={update}
+                type="date"
+                required
+              />
             </label>
           </div>
           <label>
@@ -1613,7 +2761,12 @@ function ProjectForm({ edit = false }) {
           <label>
             Project Manager
             {isOrgAdmin ? (
-              <select name="manager" value={form.manager} onChange={update} required>
+              <select
+                name="manager"
+                value={form.manager}
+                onChange={update}
+                required
+              >
                 <option value="">Select project manager</option>
                 {usersList.map((u) => (
                   <option key={u._id} value={u._id}>
@@ -1640,19 +2793,39 @@ function ProjectForm({ edit = false }) {
 
           <div style={{ marginTop: 14, marginBottom: 14 }}>
             <strong>Assign Project Members (Developers):</strong>
-            <p style={{ margin: '4px 0 10px', fontSize: 12, color: '#64748b' }}>
+            <p style={{ margin: "4px 0 10px", fontSize: 12, color: "#64748b" }}>
               Members work on tasks, log progress, and report issues.
             </p>
-            <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8, padding: 10 }}>
+            <div
+              style={{
+                maxHeight: 150,
+                overflowY: "auto",
+                border: "1px solid #e2e8f0",
+                borderRadius: 8,
+                padding: 10,
+              }}
+            >
               {usersList.map((u) => (
-                <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0', fontSize: 13, cursor: 'pointer' }}>
+                <label
+                  key={u._id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    margin: "4px 0",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={form.members.includes(u._id)}
                     onChange={() => toggleMember(u._id)}
                   />
                   <span>{u.name}</span>
-                  <small style={{ color: '#94a3b8' }}>({ROLE_LABELS[u.role] || u.role})</small>
+                  <small style={{ color: "#94a3b8" }}>
+                    ({ROLE_LABELS[u.role] || u.role})
+                  </small>
                 </label>
               ))}
             </div>
@@ -1660,186 +2833,399 @@ function ProjectForm({ edit = false }) {
 
           <div style={{ marginTop: 14, marginBottom: 14 }}>
             <strong>Assign Stakeholders (Read-only viewers):</strong>
-            <p style={{ margin: '4px 0 10px', fontSize: 12, color: '#64748b' }}>
-              Stakeholders have read-only visibility into progress, milestones, and reports.
+            <p style={{ margin: "4px 0 10px", fontSize: 12, color: "#64748b" }}>
+              Stakeholders have read-only visibility into progress, milestones,
+              and reports.
             </p>
-            <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8, padding: 10 }}>
+            <div
+              style={{
+                maxHeight: 150,
+                overflowY: "auto",
+                border: "1px solid #e2e8f0",
+                borderRadius: 8,
+                padding: 10,
+              }}
+            >
               {usersList.map((u) => (
-                <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0', fontSize: 13, cursor: 'pointer' }}>
+                <label
+                  key={u._id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    margin: "4px 0",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={form.stakeholders.includes(u._id)}
                     onChange={() => toggleStakeholder(u._id)}
                   />
                   <span>{u.name}</span>
-                  <small style={{ color: '#94a3b8' }}>({ROLE_LABELS[u.role] || u.role})</small>
+                  <small style={{ color: "#94a3b8" }}>
+                    ({ROLE_LABELS[u.role] || u.role})
+                  </small>
                 </label>
               ))}
             </div>
           </div>
 
           <ProjectError message={error} />
-          <Button type="submit" disabled={saving}>{saving ? 'Saving...' : edit ? 'Save changes' : 'Create project'}</Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving..." : edit ? "Save changes" : "Create project"}
+          </Button>
         </form>
       </Card>
     </>
-  )
+  );
 }
 
 function FormPage({ title, description }) {
-  return <><PageHeader eyebrow="Workspace" title={title} description={description} /><Card className="form-card"><label>Name<input placeholder="Enter a name" /></label><label>Description<textarea placeholder="Add a short description" rows="4" /></label><div className="form-row"><label>Start date<input type="date" /></label><label>Deadline<input type="date" /></label></div><Button>Save draft</Button></Card></>
+  return (
+    <>
+      <PageHeader eyebrow="Workspace" title={title} description={description} />
+      <Card className="form-card">
+        <label>
+          Name
+          <input placeholder="Enter a name" />
+        </label>
+        <label>
+          Description
+          <textarea placeholder="Add a short description" rows="4" />
+        </label>
+        <div className="form-row">
+          <label>
+            Start date
+            <input type="date" />
+          </label>
+          <label>
+            Deadline
+            <input type="date" />
+          </label>
+        </div>
+        <Button>Save draft</Button>
+      </Card>
+    </>
+  );
 }
 
 function MilestoneForm({ projectId, initialData, onSubmit, onCancel }) {
-  const edit = !!initialData
+  const edit = !!initialData;
   const [form, setForm] = useState({
-    name: initialData?.name || '',
-    description: initialData?.description || '',
-    dueDate: initialData?.dueDate ? initialData.dueDate.slice(0, 10) : '',
-    status: initialData?.status || 'PLANNED',
-  })
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [showForm, setShowForm] = useState(edit)
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    dueDate: initialData?.dueDate ? initialData.dueDate.slice(0, 10) : "",
+    status: initialData?.status || "PLANNED",
+  });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(edit);
 
   if (edit) {
     return (
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="milestone-form">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(form);
+        }}
+        className="milestone-form"
+      >
         <div className="form-row">
-          <label>Name<input name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Milestone name" /></label>
-          <label>Due date<input name="dueDate" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} type="date" required /></label>
+          <label>
+            Name
+            <input
+              name="name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+              placeholder="Milestone name"
+            />
+          </label>
+          <label>
+            Due date
+            <input
+              name="dueDate"
+              value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+              type="date"
+              required
+            />
+          </label>
         </div>
-        <label>Description<textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows="2" placeholder="Add a short description" /></label>
-        <label>Status<select name="status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="PLANNED">Planned</option><option value="IN_PROGRESS">In Progress</option><option value="COMPLETED">Completed</option></select></label>
-        {error && <div className="form-error"><XCircle size={16} />{error}</div>}
+        <label>
+          Description
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows="2"
+            placeholder="Add a short description"
+          />
+        </label>
+        <label>
+          Status
+          <select
+            name="status"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+          >
+            <option value="PLANNED">Planned</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="COMPLETED">Completed</option>
+          </select>
+        </label>
+        {error && (
+          <div className="form-error">
+            <XCircle size={16} />
+            {error}
+          </div>
+        )}
         <div className="form-actions">
-          <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save changes'}</Button>
-          <Button variant="secondary" type="button" onClick={onCancel}>Cancel</Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving..." : "Save changes"}
+          </Button>
+          <Button variant="secondary" type="button" onClick={onCancel}>
+            Cancel
+          </Button>
         </div>
       </form>
-    )
+    );
   }
 
   if (!showForm) {
-    return <Button icon={Plus} onClick={() => setShowForm(true)}>Create milestone</Button>
+    return (
+      <Button icon={Plus} onClick={() => setShowForm(true)}>
+        Create milestone
+      </Button>
+    );
   }
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(form) }} className="milestone-form">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(form);
+      }}
+      className="milestone-form"
+    >
       <div className="form-row">
-        <label>Name<input name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Milestone name" autoFocus /></label>
-        <label>Due date<input name="dueDate" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} type="date" required /></label>
+        <label>
+          Name
+          <input
+            name="name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+            placeholder="Milestone name"
+            autoFocus
+          />
+        </label>
+        <label>
+          Due date
+          <input
+            name="dueDate"
+            value={form.dueDate}
+            onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+            type="date"
+            required
+          />
+        </label>
       </div>
-      <label>Description<textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows="2" placeholder="Add a short description" /></label>
-      <label>Status<select name="status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="PLANNED">Planned</option><option value="IN_PROGRESS">In Progress</option><option value="COMPLETED">Completed</option></select></label>
-      {error && <div className="form-error"><XCircle size={16} />{error}</div>}
+      <label>
+        Description
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          rows="2"
+          placeholder="Add a short description"
+        />
+      </label>
+      <label>
+        Status
+        <select
+          name="status"
+          value={form.status}
+          onChange={(e) => setForm({ ...form, status: e.target.value })}
+        >
+          <option value="PLANNED">Planned</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="COMPLETED">Completed</option>
+        </select>
+      </label>
+      {error && (
+        <div className="form-error">
+          <XCircle size={16} />
+          {error}
+        </div>
+      )}
       <div className="form-actions">
-        <Button type="submit" disabled={saving}>{saving ? 'Creating...' : 'Create milestone'}</Button>
-        <Button variant="secondary" type="button" onClick={() => { setShowForm(false); setForm({ name: '', description: '', dueDate: '', status: 'PLANNED' }) }}>Cancel</Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? "Creating..." : "Create milestone"}
+        </Button>
+        <Button
+          variant="secondary"
+          type="button"
+          onClick={() => {
+            setShowForm(false);
+            setForm({
+              name: "",
+              description: "",
+              dueDate: "",
+              status: "PLANNED",
+            });
+          }}
+        >
+          Cancel
+        </Button>
       </div>
     </form>
-  )
+  );
 }
 
 function ProjectDetailPage() {
-  const { id } = useParams()
-  const { user } = useAuth()
-  const [project, setProject] = useState(null)
-  const [milestones, setMilestones] = useState([])
-  const [email, setEmail] = useState('')
-  const [roleInProject, setRoleInProject] = useState('MEMBER')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [milestonesLoading, setMilestonesLoading] = useState(true)
+  const { id } = useParams();
+  const { user } = useAuth();
+  const [project, setProject] = useState(null);
+  const [milestones, setMilestones] = useState([]);
+  const [email, setEmail] = useState("");
+  const [roleInProject, setRoleInProject] = useState("MEMBER");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [milestonesLoading, setMilestonesLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/api/projects/${id}`)
+    api
+      .get(`/api/projects/${id}`)
       .then(({ data }) => setProject(data.project))
-      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load project.'))
-      .finally(() => setLoading(false))
-  }, [id])
+      .catch((requestError) =>
+        setError(
+          requestError.response?.data?.message || "Unable to load project.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, [id]);
 
   useEffect(() => {
-    if (!id) return
-    setMilestonesLoading(true)
-    api.get(`/api/projects/${id}/milestones`)
+    if (!id) return;
+    setMilestonesLoading(true);
+    api
+      .get(`/api/projects/${id}/milestones`)
       .then(({ data }) => setMilestones(data.milestones || []))
-      .catch((requestError) => setError(requestError.response?.data?.message || 'Unable to load milestones.'))
-      .finally(() => setMilestonesLoading(false))
-  }, [id])
+      .catch((requestError) =>
+        setError(
+          requestError.response?.data?.message || "Unable to load milestones.",
+        ),
+      )
+      .finally(() => setMilestonesLoading(false));
+  }, [id]);
 
   async function addMember(event) {
-    event.preventDefault()
+    event.preventDefault();
     try {
-      const { data } = await api.post(`/api/projects/${id}/members`, { email, roleInProject })
-      setProject(data.project)
-      setEmail('')
+      const { data } = await api.post(`/api/projects/${id}/members`, {
+        email,
+        roleInProject,
+      });
+      setProject(data.project);
+      setEmail("");
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to add member.')
+      setError(requestError.response?.data?.message || "Unable to add member.");
     }
   }
 
   async function removeMember(memberId) {
     try {
-      const { data } = await api.delete(`/api/projects/${id}/members/${memberId}`)
-      setProject(data.project)
+      const { data } = await api.delete(
+        `/api/projects/${id}/members/${memberId}`,
+      );
+      setProject(data.project);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to remove member.')
+      setError(
+        requestError.response?.data?.message || "Unable to remove member.",
+      );
     }
   }
 
   async function createMilestone(milestoneData) {
     try {
-      const { data } = await api.post(`/api/projects/${id}/milestones`, { ...milestoneData, project: id })
-      setMilestones((current) => [...current, data.milestone].sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)))
+      const { data } = await api.post(`/api/projects/${id}/milestones`, {
+        ...milestoneData,
+        project: id,
+      });
+      setMilestones((current) =>
+        [...current, data.milestone].sort(
+          (a, b) => new Date(a.dueDate) - new Date(b.dueDate),
+        ),
+      );
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to create milestone.')
-      throw requestError
+      setError(
+        requestError.response?.data?.message || "Unable to create milestone.",
+      );
+      throw requestError;
     }
   }
 
   async function updateMilestone(milestoneId, milestoneData) {
     try {
-      const { data } = await api.put(`/api/projects/${id}/milestones/${milestoneId}`, milestoneData)
+      const { data } = await api.put(
+        `/api/projects/${id}/milestones/${milestoneId}`,
+        milestoneData,
+      );
       setMilestones((current) =>
-        current.map((m) => (m._id === milestoneId ? data.milestone : m))
-          .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-      )
+        current
+          .map((m) => (m._id === milestoneId ? data.milestone : m))
+          .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
+      );
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to update milestone.')
-      throw requestError
+      setError(
+        requestError.response?.data?.message || "Unable to update milestone.",
+      );
+      throw requestError;
     }
   }
 
   async function deleteMilestone(milestoneId) {
-    if (!window.confirm('Delete this milestone?')) return
+    if (!window.confirm("Delete this milestone?")) return;
     try {
-      await api.delete(`/api/projects/${id}/milestones/${milestoneId}`)
-      setMilestones((current) => current.filter((m) => m._id !== milestoneId))
+      await api.delete(`/api/projects/${id}/milestones/${milestoneId}`);
+      setMilestones((current) => current.filter((m) => m._id !== milestoneId));
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to delete milestone.')
+      setError(
+        requestError.response?.data?.message || "Unable to delete milestone.",
+      );
     }
   }
 
-  if (loading) return <div className="loading-screen"><div className="spinner" />Loading project...</div>
-  if (!project) return <ProjectError message={error || 'Project not found.'} />
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        Loading project...
+      </div>
+    );
+  if (!project) return <ProjectError message={error || "Project not found."} />;
 
   const canManage =
-    user?.role === 'ORGANISATION_ADMIN' ||
-    (user?.role === 'PROJECT_MANAGER' && ((project.manager?._id || project.manager) === user?.id || (project.manager?._id || project.manager) === user?._id))
+    user?.role === "ORGANISATION_ADMIN" ||
+    (user?.role === "PROJECT_MANAGER" &&
+      ((project.manager?._id || project.manager) === user?.id ||
+        (project.manager?._id || project.manager) === user?._id));
 
   function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString()
+    return new Date(dateString).toLocaleDateString();
   }
 
   function getStatusBadgeTone(status) {
     switch (status) {
-      case 'COMPLETED':
-        return 'completed'
-      case 'IN_PROGRESS':
-        return 'active'
+      case "COMPLETED":
+        return "completed";
+      case "IN_PROGRESS":
+        return "active";
       default:
-        return 'planned'
+        return "planned";
     }
   }
 
@@ -1848,8 +3234,17 @@ function ProjectDetailPage() {
       <PageHeader
         eyebrow="Project overview"
         title={project.name}
-        description={project.description || 'No description provided.'}
-        action={canManage && <Link to={`/projects/${id}/edit`} className="button button-secondary">Edit project</Link>}
+        description={project.description || "No description provided."}
+        action={
+          canManage && (
+            <Link
+              to={`/projects/${id}/edit`}
+              className="button button-secondary"
+            >
+              Edit project
+            </Link>
+          )
+        }
       />
       <ProjectError message={error} />
       <div className="detail-grid">
@@ -1859,15 +3254,33 @@ function ProjectDetailPage() {
             <Badge tone={project.status}>{project.status}</Badge>
           </div>
           <p className="detail-copy">
-            Created {new Date(project.createdAt).toLocaleDateString()} · Managed by {project.manager?.name || 'Unknown'}
+            Created {new Date(project.createdAt).toLocaleDateString()} · Managed
+            by {project.manager?.name || "Unknown"}
           </p>
           <div className="detail-progress">
-            <div><span>Progress</span><strong>{project.progress ?? 0}%</strong></div>
-            <ProgressBar value={project.progress ?? (project.status === 'COMPLETED' ? 100 : project.status === 'ACTIVE' ? 50 : 0)} />
+            <div>
+              <span>Progress</span>
+              <strong>{project.progress ?? 0}%</strong>
+            </div>
+            <ProgressBar
+              value={
+                project.progress ??
+                (project.status === "COMPLETED"
+                  ? 100
+                  : project.status === "ACTIVE"
+                    ? 50
+                    : 0)
+              }
+            />
           </div>
-          <div style={{ marginTop: 14, fontSize: 13, color: '#64748b' }}>
-            <span>Start date: {new Date(project.startDate).toLocaleDateString()}</span> ·{' '}
-            <span>Deadline: {new Date(project.deadline).toLocaleDateString()}</span>
+          <div style={{ marginTop: 14, fontSize: 13, color: "#64748b" }}>
+            <span>
+              Start date: {new Date(project.startDate).toLocaleDateString()}
+            </span>{" "}
+            ·{" "}
+            <span>
+              Deadline: {new Date(project.deadline).toLocaleDateString()}
+            </span>
           </div>
         </Card>
 
@@ -1879,7 +3292,16 @@ function ProjectDetailPage() {
           </div>
 
           {canManage && (
-            <form className="member-form" onSubmit={addMember} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            <form
+              className="member-form"
+              onSubmit={addMember}
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                marginBottom: 16,
+              }}
+            >
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -1891,7 +3313,11 @@ function ProjectDetailPage() {
               <select
                 value={roleInProject}
                 onChange={(e) => setRoleInProject(e.target.value)}
-                style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #cbd5e1' }}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #cbd5e1",
+                }}
               >
                 <option value="MEMBER">Member (Developer)</option>
                 <option value="TEAM_LEAD">Team Lead</option>
@@ -1922,7 +3348,11 @@ function ProjectDetailPage() {
                 </div>
                 <Badge tone="progress">Team Lead</Badge>
                 {canManage && (
-                  <button className="more-button" onClick={() => removeMember(project.teamLead._id)} title="Remove team lead">
+                  <button
+                    className="more-button"
+                    onClick={() => removeMember(project.teamLead._id)}
+                    title="Remove team lead"
+                  >
                     <X size={15} />
                   </button>
                 )}
@@ -1938,7 +3368,11 @@ function ProjectDetailPage() {
                 </div>
                 <Badge tone="neutral">Member</Badge>
                 {canManage && member._id !== project.manager?._id && (
-                  <button className="more-button" onClick={() => removeMember(member._id)} title="Remove member">
+                  <button
+                    className="more-button"
+                    onClick={() => removeMember(member._id)}
+                    title="Remove member"
+                  >
                     <X size={15} />
                   </button>
                 )}
@@ -1954,7 +3388,11 @@ function ProjectDetailPage() {
                 </div>
                 <Badge tone="planned">Stakeholder</Badge>
                 {canManage && (
-                  <button className="more-button" onClick={() => removeMember(stakeholder._id)} title="Remove stakeholder">
+                  <button
+                    className="more-button"
+                    onClick={() => removeMember(stakeholder._id)}
+                    title="Remove stakeholder"
+                  >
                     <X size={15} />
                   </button>
                 )}
@@ -1966,22 +3404,33 @@ function ProjectDetailPage() {
         {/* Milestones Card */}
         <Card>
           <div className="section-heading">
-            <h2>Milestones</h2>
-            <Target size={18} />
+            <div className="section-heading-main">
+              <h2>Milestones</h2>
+              <Target size={18} />
+            </div>
             {canManage && (
-              <MilestoneForm
-                projectId={id}
-                onSubmit={createMilestone}
-                onCancel={() => {}}
-              />
+              <div className="section-heading-actions">
+                <MilestoneForm
+                  projectId={id}
+                  onSubmit={createMilestone}
+                  onCancel={() => {}}
+                />
+              </div>
             )}
           </div>
           {milestonesLoading ? (
-            <div className="loading-screen"><div className="spinner" />Loading milestones...</div>
+            <div className="loading-screen">
+              <div className="spinner" />
+              Loading milestones...
+            </div>
           ) : milestones.length === 0 ? (
             <EmptyState
               title="No milestones yet"
-              description={canManage ? 'Create a milestone to track key project deliverables.' : 'This project has no milestones yet.'}
+              description={
+                canManage
+                  ? "Create a milestone to track key project deliverables."
+                  : "This project has no milestones yet."
+              }
             />
           ) : (
             <div className="milestone-list">
@@ -1990,12 +3439,22 @@ function ProjectDetailPage() {
                   <div className="milestone-main">
                     <div className="milestone-header">
                       <strong>{milestone.name}</strong>
-                      <Badge tone={getStatusBadgeTone(milestone.status)}>{milestone.status.replace('_', ' ')}</Badge>
+                      <Badge tone={getStatusBadgeTone(milestone.status)}>
+                        {milestone.status.replace("_", " ")}
+                      </Badge>
                     </div>
-                    <p className="milestone-description">{milestone.description || 'No description'}</p>
+                    <p className="milestone-description">
+                      {milestone.description || "No description"}
+                    </p>
                     <div className="milestone-meta">
-                      <span><CalendarDays size={14} /> Due: {formatDate(milestone.dueDate)}</span>
-                      <span><Users size={14} /> Created by: {milestone.createdBy?.name || 'Unknown'}</span>
+                      <span>
+                        <CalendarDays size={14} /> Due:{" "}
+                        {formatDate(milestone.dueDate)}
+                      </span>
+                      <span>
+                        <Users size={14} /> Created by:{" "}
+                        {milestone.createdBy?.name || "Unknown"}
+                      </span>
                     </div>
                   </div>
                   {canManage && (
@@ -2003,10 +3462,16 @@ function ProjectDetailPage() {
                       <MilestoneForm
                         projectId={id}
                         initialData={milestone}
-                        onSubmit={(data) => updateMilestone(milestone._id, data)}
+                        onSubmit={(data) =>
+                          updateMilestone(milestone._id, data)
+                        }
                         onCancel={() => {}}
                       />
-                      <button className="more-button" onClick={() => deleteMilestone(milestone._id)} title="Delete milestone">
+                      <button
+                        className="more-button"
+                        onClick={() => deleteMilestone(milestone._id)}
+                        title="Delete milestone"
+                      >
                         <X size={15} />
                       </button>
                     </div>
@@ -2018,87 +3483,116 @@ function ProjectDetailPage() {
         </Card>
       </div>
     </>
-  )
+  );
 }
 
 function SearchPage() {
-  const location = useLocation()
-  const initialQuery = useMemo(() => new URLSearchParams(location.search).get('q') || '', [location.search])
-  const [query, setQuery] = useState(initialQuery)
-  const [results, setResults] = useState({ projects: [], tasks: [], issues: [], users: [] })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const location = useLocation();
+  const initialQuery = useMemo(
+    () => new URLSearchParams(location.search).get("q") || "",
+    [location.search],
+  );
+  const [query, setQuery] = useState(initialQuery);
+  const [results, setResults] = useState({
+    projects: [],
+    tasks: [],
+    issues: [],
+    users: [],
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSearch(nextQuery = query) {
-    const trimmed = nextQuery.trim()
+    const trimmed = nextQuery.trim();
     if (!trimmed) {
-      setResults({ projects: [], tasks: [], issues: [], users: [] })
-      return
+      setResults({ projects: [], tasks: [], issues: [], users: [] });
+      return;
     }
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError("");
     try {
-      const response = await api.get('/api/search', { params: { q: trimmed } })
+      const response = await api.get("/api/search", { params: { q: trimmed } });
       setResults({
         projects: response.data.projects || [],
         tasks: response.data.tasks || [],
         issues: response.data.issues || [],
         users: response.data.users || [],
-      })
+      });
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to search.')
-      setResults({ projects: [], tasks: [], issues: [], users: [] })
+      setError(requestError.response?.data?.message || "Unable to search.");
+      setResults({ projects: [], tasks: [], issues: [], users: [] });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
     if (initialQuery) {
-      setQuery(initialQuery)
-      handleSearch(initialQuery)
+      setQuery(initialQuery);
+      handleSearch(initialQuery);
     }
-  }, [initialQuery])
+  }, [initialQuery]);
 
-  const hasResults = results.projects.length + results.tasks.length + results.issues.length + results.users.length > 0
+  const hasResults =
+    results.projects.length +
+      results.tasks.length +
+      results.issues.length +
+      results.users.length >
+    0;
 
   function renderProject(project) {
     return (
-      <Link to={`/projects/${project._id}`} className="search-result-item" key={project._id}>
+      <Link
+        to={`/projects/${project._id}`}
+        className="search-result-item"
+        key={project._id}
+      >
         <span className="result-type">Project</span>
         <div className="result-main">
           <strong>{project.name}</strong>
-          <small>{project.description || 'No description'}</small>
+          <small>{project.description || "No description"}</small>
         </div>
         <Badge tone={project.status}>{project.status}</Badge>
       </Link>
-    )
+    );
   }
 
   function renderTask(task) {
     return (
-      <Link to={`/tasks/${task._id}`} className="search-result-item" key={task._id}>
+      <Link
+        to={`/tasks/${task._id}`}
+        className="search-result-item"
+        key={task._id}
+      >
         <span className="result-type">Task</span>
         <div className="result-main">
           <strong>{task.title}</strong>
-          <small>{task.project?.name} · {task.assignedTo?.name}</small>
+          <small>
+            {task.project?.name} · {task.assignedTo?.name}
+          </small>
         </div>
         <Badge tone={task.priority}>{task.priority}</Badge>
       </Link>
-    )
+    );
   }
 
   function renderIssue(issue) {
     return (
-      <Link to={`/issues/${issue._id}`} className="search-result-item" key={issue._id}>
+      <Link
+        to={`/issues/${issue._id}`}
+        className="search-result-item"
+        key={issue._id}
+      >
         <span className="result-type">Issue</span>
         <div className="result-main">
           <strong>{issue.title}</strong>
-          <small>{issue.project?.name} · {issue.assignedTo?.name || 'Unassigned'}</small>
+          <small>
+            {issue.project?.name} · {issue.assignedTo?.name || "Unassigned"}
+          </small>
         </div>
         <Badge tone={issue.severity}>{issue.severity}</Badge>
       </Link>
-    )
+    );
   }
 
   function renderUser(user) {
@@ -2109,16 +3603,20 @@ function SearchPage() {
           <strong>{user.name}</strong>
           <small>{user.email}</small>
         </div>
-        <Badge tone={user.role === 'PROJECT_MANAGER' ? 'active' : 'neutral'}>
-          {user.role === 'PROJECT_MANAGER' ? 'Project Manager' : 'Member'}
+        <Badge tone={user.role === "PROJECT_MANAGER" ? "active" : "neutral"}>
+          {user.role === "PROJECT_MANAGER" ? "Project Manager" : "Member"}
         </Badge>
       </div>
-    )
+    );
   }
 
   return (
     <>
-      <PageHeader eyebrow="Workspace" title="Search" description="Find projects, tasks, issues, and people." />
+      <PageHeader
+        eyebrow="Workspace"
+        title="Search"
+        description="Find projects, tasks, issues, and people."
+      />
       <Card className="search-page">
         <label className="search-field large">
           <Search size={19} />
@@ -2126,86 +3624,133 @@ function SearchPage() {
             autoFocus
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
+            onKeyDown={(event) => event.key === "Enter" && handleSearch()}
             placeholder="Search your workspace..."
           />
           <Button onClick={handleSearch} disabled={loading || !query.trim()}>
-            {loading ? 'Searching...' : 'Search'}
+            {loading ? "Searching..." : "Search"}
           </Button>
         </label>
 
-        {error && <div className="form-error"><XCircle size={16} />{error}</div>}
+        {error && (
+          <div className="form-error">
+            <XCircle size={16} />
+            {error}
+          </div>
+        )}
 
         {loading ? (
-          <div className="loading-screen"><div className="spinner" />Searching...</div>
+          <div className="loading-screen">
+            <div className="spinner" />
+            Searching...
+          </div>
         ) : !query.trim() ? (
-          <EmptyState title="Search your workspace" description="Enter a query to find anything across your projects." />
+          <EmptyState
+            title="Search your workspace"
+            description="Enter a query to find anything across your projects."
+          />
         ) : !hasResults ? (
-          <EmptyState title="No results found" description={`No projects, tasks, issues, or members match "${query}".`} />
+          <EmptyState
+            title="No results found"
+            description={`No projects, tasks, issues, or members match "${query}".`}
+          />
         ) : (
           <div className="search-results">
             {results.projects.length > 0 && (
               <div className="search-section">
                 <h3>Projects ({results.projects.length})</h3>
-                <div className="search-list">{results.projects.map(renderProject)}</div>
+                <div className="search-list">
+                  {results.projects.map(renderProject)}
+                </div>
               </div>
             )}
             {results.tasks.length > 0 && (
               <div className="search-section">
                 <h3>Tasks ({results.tasks.length})</h3>
-                <div className="search-list">{results.tasks.map(renderTask)}</div>
+                <div className="search-list">
+                  {results.tasks.map(renderTask)}
+                </div>
               </div>
             )}
             {results.issues.length > 0 && (
               <div className="search-section">
                 <h3>Issues ({results.issues.length})</h3>
-                <div className="search-list">{results.issues.map(renderIssue)}</div>
+                <div className="search-list">
+                  {results.issues.map(renderIssue)}
+                </div>
               </div>
             )}
             {results.users.length > 0 && (
               <div className="search-section">
                 <h3>Members ({results.users.length})</h3>
-                <div className="search-list">{results.users.map(renderUser)}</div>
+                <div className="search-list">
+                  {results.users.map(renderUser)}
+                </div>
               </div>
             )}
           </div>
         )}
       </Card>
     </>
-  )
+  );
 }
 
-function NotFound() { return <div className="not-found"><XCircle size={42} /><h1>Page not found</h1><p>The page you are looking for does not exist.</p><Link to="/dashboard" className="button button-primary">Back to dashboard</Link></div> }
+function NotFound() {
+  return (
+    <div className="not-found">
+      <XCircle size={42} />
+      <h1>Page not found</h1>
+      <p>The page you are looking for does not exist.</p>
+      <Link to="/dashboard" className="button button-primary">
+        Back to dashboard
+      </Link>
+    </div>
+  );
+}
 
 export default function App() {
-  return <Routes>
-    <Route path="/" element={<LandingPage />} />
-    <Route path="/login" element={<AuthPage mode="login" />} />
-    <Route path="/register" element={<AuthPage mode="register" />} />
-    <Route element={<ProtectedLayout />}>
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/projects" element={<ProjectsPage />} />
-      <Route path="/projects/new" element={<ProjectForm />} />
-      <Route path="/projects/:id" element={<ProjectDetailPage />} />
-      <Route path="/projects/:id/edit" element={<ProjectForm edit />} />
-      <Route path="/projects/:id/activity" element={<ProjectDetailPage />} />
-      <Route path="/tasks" element={<TasksPage />} />
-      <Route path="/tasks/new" element={<TaskForm />} />
-      <Route path="/tasks/:id" element={<TaskDetailPage />} />
-      <Route path="/tasks/:id/edit" element={<TaskForm edit />} />
-      <Route path="/kanban" element={<KanbanPage />} />
-      <Route path="/team" element={<TeamPage />} />
-      <Route path="/team/new" element={<FormPage title="Invite a member" description="Bring another collaborator into your workspace." />} />
-      <Route path="/team/:id" element={<TeamPage />} />
-      <Route path="/issues" element={<IssuesPage />} />
-      <Route path="/issues/new" element={<IssueForm />} />
-      <Route path="/issues/:id" element={<IssueDetailPage />} />
-      <Route path="/issues/:id/edit" element={<IssueForm edit />} />
-      <Route path="/milestones" element={<MilestonesPage />} />
-      <Route path="/reports" element={<ReportsPage />} />
-      <Route path="/search" element={<SearchPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-      <Route path="*" element={<NotFound />} />
-    </Route>
-  </Routes>
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<AuthPage mode="login" />} />
+      <Route path="/register" element={<AuthPage mode="register" />} />
+      <Route element={<ProtectedLayout />}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/new" element={<ProjectForm />} />
+        <Route path="/projects/:id" element={<ProjectDetailPage />} />
+        <Route path="/projects/:id/edit" element={<ProjectForm edit />} />
+        <Route path="/projects/:id/activity" element={<ProjectDetailPage />} />
+        <Route path="/projects/:id/milestones" element={<MilestonesPage />} />
+        <Route path="/projects/:id/sprints" element={<SprintsPage />} />
+        <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/tasks/new" element={<TaskForm />} />
+        <Route path="/tasks/:id" element={<TaskDetailPage />} />
+        <Route path="/tasks/:id/edit" element={<TaskForm edit />} />
+        <Route path="/kanban" element={<KanbanPage />} />
+        <Route path="/team" element={<TeamPage />} />
+        <Route
+          path="/team/new"
+          element={
+            <FormPage
+              title="Invite a member"
+              description="Bring another collaborator into your workspace."
+            />
+          }
+        />
+        <Route path="/team/:id" element={<TeamPage />} />
+        <Route path="/issues" element={<IssuesPage />} />
+        <Route path="/issues/new" element={<IssueForm />} />
+        <Route path="/issues/:id" element={<IssueDetailPage />} />
+        <Route path="/issues/:id/edit" element={<IssueForm edit />} />
+        <Route path="/milestones" element={<MilestonesPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
+  );
 }

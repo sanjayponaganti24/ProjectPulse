@@ -13,7 +13,7 @@ import { protect } from '../middleware/authMiddleware.js'
 import { authorizeRoles } from '../middleware/roleMiddleware.js'
 
 const router = Router()
-const projectCreators = [protect, authorizeRoles('ORGANISATION_ADMIN', 'PROJECT_MANAGER')]
+const projectCreators = [protect, authorizeRoles('ORGANISATION_ADMIN', 'PROJECT_MANAGER', 'TEAM_LEAD')]
 
 function validateRequest(req, res, next) {
   const errors = validationResult(req)
