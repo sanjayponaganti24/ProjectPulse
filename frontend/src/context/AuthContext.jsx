@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
   }
 
   async function register(details) {
-    const response = await api.post("/api/auth/register", details);
+    const response = await api.post("/auth/register", details);
     const registeredUser = response.data.user;
     if (registeredUser?.role === "ORGANISATION_ADMIN") {
       setUser({
