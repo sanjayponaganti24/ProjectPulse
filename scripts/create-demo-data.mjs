@@ -716,7 +716,7 @@ async function syncUsers() {
     let userId = null
 
     // First attempt registration
-    const regRes = await request('/api/auth/register', {
+    const regRes = await request('/auth/register', {
       method: 'POST',
       body: JSON.stringify({
         name: userDef.name,
