@@ -62,70 +62,47 @@ function setAuthCookie(res, token) {
 
 export async function register(req, res, next) {
   try {
-    const { name, email, password, role, organisationName } = req.body
+    const { name, email, password, role } = req.body
+
     const normalizedEmail = email.toLowerCase().trim()
-    const existingUser = await User.findOne({ email: normalizedEmail })
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+    })
 
     if (existingUser) {
-      res.status(409).json({ success: false, message: 'An account with this email already exists.' })
-      return
-    }
-
-    const adminExists = await User.exists({ role: 'ORGANISATION_ADMIN' })
-    let assignedRole = role || 'MEMBER'
-
-    let organisation = await Organisation.findOne().sort({ createdAt: 1 })
-
-    if (!adminExists) {
-      // First user becomes ORGANISATION_ADMIN and initializes the workspace
-      assignedRole = 'ORGANISATION_ADMIN'
-      const user = await User.create({
-        name: name.trim(),
-        email: normalizedEmail,
-        password,
-        role: assignedRole,
-      })
-
-      if (!organisation) {
-        organisation = await Organisation.create({
-          name: (organisationName || 'ProjectPulse Workspace').trim(),
-          owner: user._id,
-        })
-      } else {
-        organisation.owner = user._id
-        await organisation.save()
-      }
-
-      user.organisation = organisation._id
-      await user.save()
-
-      setAuthCookie(res, createToken(user._id.toString()))
-      const safeUser = getSafeUser(user)
-      safeUser.organisation = { id: organisation._id.toString(), name: organisation.name }
-      res.status(201).json({
-        success: true,
-        user: safeUser,
-        organisation: { id: organisation._id, name: organisation.name },
-        message: 'Workspace created. You are now the Organisation Admin.',
+      res.status(409).json({
+        success: false,
+        message: 'An account with this email already exists.',
       })
       return
     }
+
+    const publicRoles = [
+      'PROJECT_MANAGER',
+      'TEAM_LEAD',
+      'MEMBER',
+      'STAKEHOLDER',
+    ]
+
+    if (!publicRoles.includes(role)) {
+      res.status(403).json({
+        success: false,
+        message:
+          'Invalid registration role. Organisation Admin accounts are created by the system administrator.',
+      })
+      return
+    }
+
+    const organisation = await Organisation.findOne().sort({
+      createdAt: 1,
+    })
 
     if (!organisation) {
       res.status(503).json({
         success: false,
         message:
-          'This workspace has not been set up yet. The first user must create the organisation.',
-      })
-      return
-    }
-
-    // If an Organisation Admin already exists, users cannot self-register as ORGANISATION_ADMIN
-    if (assignedRole === 'ORGANISATION_ADMIN') {
-      res.status(403).json({
-        success: false,
-        message:
-          'An Organisation Admin already exists for this workspace. Please register with another role or ask the administrator for an invitation.',
+          'The ProjectPulse workspace has not been configured yet. Please contact the administrator.',
       })
       return
     }
@@ -134,16 +111,18 @@ export async function register(req, res, next) {
       name: name.trim(),
       email: normalizedEmail,
       password,
-      role: assignedRole,
-      organisation: organisation ? organisation._id : null,
+      role,
+      organisation: organisation._id,
     })
-
-    setAuthCookie(res, createToken(user._id.toString()))
 
     res.status(201).json({
       success: true,
       user: getSafeUser(user),
-      organisation: organisation ? { id: organisation._id, name: organisation.name } : null,
+      organisation: {
+        id: organisation._id,
+        name: organisation.name,
+      },
+      message: 'Account created successfully. Please log in.',
     })
   } catch (error) {
     next(error)
