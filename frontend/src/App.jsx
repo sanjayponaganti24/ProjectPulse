@@ -91,7 +91,7 @@ function ProjectsPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/api/projects", {
+      const response = await api.get("/projects", {
         params: { search: query || undefined, status: status || undefined },
       });
       setItems(response.data.projects || []);
@@ -111,7 +111,7 @@ function ProjectsPage() {
   async function deleteProject(id) {
     if (!window.confirm("Delete this project? This cannot be undone.")) return;
     try {
-      await api.delete(`/api/projects/${id}`);
+      await api.delete(`/projects/${id}`);
       setItems((current) => current.filter((project) => project._id !== id));
     } catch (requestError) {
       setError(
@@ -274,7 +274,7 @@ function TasksPage() {
   async function loadTasks() {
     setLoading(true);
     try {
-      const { data } = await api.get("/api/tasks", {
+      const { data } = await api.get("/tasks", {
         params: {
           status: filters.status || undefined,
           priority: filters.priority || undefined,
@@ -302,7 +302,7 @@ function TasksPage() {
   async function updateStatus(task, status) {
     if (isStakeholder) return;
     try {
-      const { data } = await api.patch(`/api/tasks/${task._id}`, { status });
+      const { data } = await api.patch(`/tasks/${task._id}`, { status });
       setItems((current) =>
         current.map((item) => (item._id === task._id ? data.task : item)),
       );
@@ -316,7 +316,7 @@ function TasksPage() {
   async function deleteTask(id) {
     if (!window.confirm("Delete this task?")) return;
     try {
-      await api.delete(`/api/tasks/${id}`);
+      await api.delete(`/tasks/${id}`);
       setItems((current) => current.filter((task) => task._id !== id));
     } catch (requestError) {
       setError(
@@ -486,8 +486,8 @@ function TaskForm({ edit = false }) {
 
   useEffect(() => {
     Promise.all([
-      api.get("/api/projects"),
-      edit ? api.get(`/api/tasks/${id}`) : Promise.resolve(null),
+      api.get("/projects"),
+      edit ? api.get(`/tasks/${id}`) : Promise.resolve(null),
     ])
       .then(([projectsResponse, taskResponse]) => {
         const projects = projectsResponse.data.projects || [];
@@ -556,8 +556,8 @@ function TaskForm({ edit = false }) {
     try {
       const payload = isTeamLead ? { ...form, project: project._id } : form;
       const response = edit
-        ? await api.put(`/api/tasks/${id}`, payload)
-        : await api.post("/api/tasks", payload);
+        ? await api.put(`/tasks/${id}`, payload)
+        : await api.post("/tasks", payload);
       navigate(`/tasks/${response.data.task._id}`);
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to save task.");
@@ -711,7 +711,7 @@ function TaskDetailPage() {
 
   useEffect(() => {
     api
-      .get(`/api/tasks/${id}`)
+      .get(`/tasks/${id}`)
       .then(({ data }) => setTask(data.task))
       .catch((requestError) =>
         setError(
@@ -723,7 +723,7 @@ function TaskDetailPage() {
   async function deleteTask() {
     if (!window.confirm("Delete this task?")) return;
     try {
-      await api.delete(`/api/tasks/${id}`);
+      await api.delete(`/tasks/${id}`);
       navigate("/tasks");
     } catch (requestError) {
       setError(
@@ -874,7 +874,7 @@ function KanbanPage() {
 
   useEffect(() => {
     api
-      .get("/api/tasks")
+      .get("/tasks")
       .then(({ data }) => setItems(data.tasks || []))
       .catch((requestError) =>
         setError(
@@ -905,7 +905,7 @@ function KanbanPage() {
       ),
     );
     try {
-      const { data } = await api.patch(`/api/tasks/${task._id}`, { status });
+      const { data } = await api.patch(`/tasks/${task._id}`, { status });
       setItems((current) =>
         current.map((item) => (item._id === task._id ? data.task : item)),
       );
@@ -1034,7 +1034,7 @@ function IssuesPage() {
   async function loadIssues() {
     setLoading(true);
     try {
-      const { data } = await api.get("/api/issues", {
+      const { data } = await api.get("/issues", {
         params: {
           status: filters.status || undefined,
           severity: filters.severity || undefined,
@@ -1058,7 +1058,7 @@ function IssuesPage() {
   async function deleteIssue(id) {
     if (!window.confirm("Delete this issue?")) return;
     try {
-      await api.delete(`/api/issues/${id}`);
+      await api.delete(`/issues/${id}`);
       setItems((current) => current.filter((issue) => issue._id !== id));
     } catch (requestError) {
       setError(
@@ -1207,9 +1207,9 @@ function IssueForm({ edit = false }) {
 
   useEffect(() => {
     Promise.all([
-      api.get("/api/projects"),
-      api.get("/api/tasks"),
-      edit ? api.get(`/api/issues/${id}`) : Promise.resolve(null),
+      api.get("/projects"),
+      api.get("/tasks"),
+      edit ? api.get(`/issues/${id}`) : Promise.resolve(null),
     ])
       .then(([projectsResponse, tasksResponse, issueResponse]) => {
         setProjectsList(projectsResponse.data.projects || []);
@@ -1273,8 +1273,8 @@ function IssueForm({ edit = false }) {
     };
     try {
       const response = edit
-        ? await api.put(`/api/issues/${id}`, payload)
-        : await api.post("/api/issues", payload);
+        ? await api.put(`/issues/${id}`, payload)
+        : await api.post("/issues", payload);
       navigate(`/issues/${response.data.issue._id}`);
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to save issue.");
@@ -1404,7 +1404,7 @@ function IssueDetailPage() {
   const [error, setError] = useState("");
   useEffect(() => {
     api
-      .get(`/api/issues/${id}`)
+      .get(`/issues/${id}`)
       .then(({ data }) => setIssue(data.issue))
       .catch((requestError) =>
         setError(
@@ -1415,7 +1415,7 @@ function IssueDetailPage() {
   async function deleteIssue() {
     if (!window.confirm("Delete this issue?")) return;
     try {
-      await api.delete(`/api/issues/${id}`);
+      await api.delete(`/issues/${id}`);
       navigate("/issues");
     } catch (requestError) {
       setError(
@@ -1485,7 +1485,7 @@ function ReportsPage() {
       setLoading(true);
       setError("");
       try {
-        const { data } = await api.get("/api/reports", { params: { period } });
+        const { data } = await api.get("/reports", { params: { period } });
         setReports(data.reports);
       } catch (requestError) {
         setError(
@@ -1762,6 +1762,13 @@ function TeamPage() {
   const [inviting, setInviting] = useState(false);
 
   const isOrgAdmin = user?.role === "ORGANISATION_ADMIN";
+  const memberCandidates = usersList.filter(
+    (candidate) =>
+      candidate.role === "MEMBER" || candidate.role === "TEAM_LEAD",
+  );
+  const stakeholderCandidates = usersList.filter(
+    (candidate) => candidate.role === "STAKEHOLDER",
+  );
 
   async function loadTeam() {
     setLoading(true);
@@ -1769,9 +1776,9 @@ function TeamPage() {
     try {
       const [usersResponse, tasksResponse, projectsResponse] =
         await Promise.all([
-          api.get("/api/users"),
-          api.get("/api/tasks"),
-          api.get("/api/projects"),
+          api.get("/users"),
+          api.get("/tasks"),
+          api.get("/projects"),
         ]);
       setMembers(usersResponse.data.users || []);
       setTasks(tasksResponse.data.tasks || []);
@@ -1791,7 +1798,7 @@ function TeamPage() {
     setError("");
     setSuccess("");
     try {
-      const res = await api.patch(`/api/users/${userId}/role`, {
+      const res = await api.patch(`/users/${userId}/role`, {
         role: newRole,
       });
       setMembers((current) =>
@@ -1811,7 +1818,7 @@ function TeamPage() {
     setError("");
     setSuccess("");
     try {
-      const res = await api.post("/api/users/invite", inviteForm);
+      const res = await api.post("/users/invite", inviteForm);
       setMembers((current) => [...current, res.data.user]);
       setShowInviteModal(false);
       setInviteForm({ name: "", email: "", password: "", role: "MEMBER" });
@@ -2230,8 +2237,8 @@ function ProjectForm({ edit = false }) {
 
   useEffect(() => {
     Promise.all([
-      api.get("/api/users"),
-      edit ? api.get(`/api/projects/${id}`) : Promise.resolve(null),
+      api.get("/users"),
+      edit ? api.get(`/projects/${id}`) : Promise.resolve(null),
     ])
       .then(([usersRes, projectRes]) => {
         const allUsers = usersRes.data.users || [];
@@ -2322,8 +2329,8 @@ function ProjectForm({ edit = false }) {
         stakeholders: form.stakeholders,
       };
       const response = edit
-        ? await api.put(`/api/projects/${id}`, payload)
-        : await api.post("/api/projects", payload);
+        ? await api.put(`/projects/${id}`, payload)
+        : await api.post("/projects", payload);
       navigate(`/projects/${response.data.project._id}`);
     } catch (requestError) {
       setError(
@@ -2439,84 +2446,78 @@ function ProjectForm({ edit = false }) {
             </select>
           </label>
 
-          <div style={{ marginTop: 14, marginBottom: 14 }}>
-            <strong>Assign Project Members (Developers):</strong>
-            <p style={{ margin: "4px 0 10px", fontSize: 12, color: "#64748b" }}>
-              Members work on tasks, log progress, and report issues.
-            </p>
-            <div
-              style={{
-                maxHeight: 150,
-                overflowY: "auto",
-                border: "1px solid #e2e8f0",
-                borderRadius: 8,
-                padding: 10,
-              }}
-            >
-              {usersList.map((u) => (
-                <label
-                  key={u._id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    margin: "4px 0",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.members.includes(u._id)}
-                    onChange={() => toggleMember(u._id)}
-                  />
-                  <span>{u.name}</span>
-                  <small style={{ color: "#94a3b8" }}>
-                    ({ROLE_LABELS[u.role] || u.role})
-                  </small>
-                </label>
-              ))}
+          <div className="assignment-grid">
+            <div className="assignment-panel">
+              <strong>Assign Project Members (Developers):</strong>
+              <p className="assignment-help">
+                Members work on tasks, log progress, and report issues.
+              </p>
+              <div className="assignment-list">
+                {memberCandidates.length === 0 ? (
+                  <span className="assignment-empty">
+                    No developers available.
+                  </span>
+                ) : (
+                  memberCandidates.map((candidate) => (
+                    <label className="assignment-option" key={candidate._id}>
+                      <input
+                        type="checkbox"
+                        checked={form.members.includes(candidate._id)}
+                        onChange={() => toggleMember(candidate._id)}
+                      />
+                      <span className="assignment-person">
+                        <Avatar
+                          name={candidate.name}
+                          avatar={candidate.avatar}
+                          size="xs"
+                        />
+                        <span className="assignment-name">
+                          {candidate.name}
+                        </span>
+                      </span>
+                      <small>
+                        {ROLE_LABELS[candidate.role] || candidate.role}
+                      </small>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
 
-          <div style={{ marginTop: 14, marginBottom: 14 }}>
-            <strong>Assign Stakeholders (Read-only viewers):</strong>
-            <p style={{ margin: "4px 0 10px", fontSize: 12, color: "#64748b" }}>
-              Stakeholders have read-only visibility into progress, milestones,
-              and reports.
-            </p>
-            <div
-              style={{
-                maxHeight: 150,
-                overflowY: "auto",
-                border: "1px solid #e2e8f0",
-                borderRadius: 8,
-                padding: 10,
-              }}
-            >
-              {usersList.map((u) => (
-                <label
-                  key={u._id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    margin: "4px 0",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.stakeholders.includes(u._id)}
-                    onChange={() => toggleStakeholder(u._id)}
-                  />
-                  <span>{u.name}</span>
-                  <small style={{ color: "#94a3b8" }}>
-                    ({ROLE_LABELS[u.role] || u.role})
-                  </small>
-                </label>
-              ))}
+            <div className="assignment-panel">
+              <strong>Assign Stakeholders (Read-only viewers):</strong>
+              <p className="assignment-help">
+                Stakeholders have read-only visibility into progress,
+                milestones, and reports.
+              </p>
+              <div className="assignment-list">
+                {stakeholderCandidates.length === 0 ? (
+                  <span className="assignment-empty">
+                    No stakeholders available.
+                  </span>
+                ) : (
+                  stakeholderCandidates.map((candidate) => (
+                    <label className="assignment-option" key={candidate._id}>
+                      <input
+                        type="checkbox"
+                        checked={form.stakeholders.includes(candidate._id)}
+                        onChange={() => toggleStakeholder(candidate._id)}
+                      />
+                      <span className="assignment-person">
+                        <Avatar
+                          name={candidate.name}
+                          avatar={candidate.avatar}
+                          size="xs"
+                        />
+                        <span className="assignment-name">
+                          {candidate.name}
+                        </span>
+                      </span>
+                      <small>Stakeholder</small>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
@@ -2746,7 +2747,7 @@ function ProjectDetailPage() {
 
   useEffect(() => {
     api
-      .get(`/api/projects/${id}`)
+      .get(`/projects/${id}`)
       .then(({ data }) => setProject(data.project))
       .catch((requestError) =>
         setError(
@@ -2760,7 +2761,7 @@ function ProjectDetailPage() {
     if (!id) return;
     setMilestonesLoading(true);
     api
-      .get(`/api/projects/${id}/milestones`)
+      .get(`/projects/${id}/milestones`)
       .then(({ data }) => setMilestones(data.milestones || []))
       .catch((requestError) =>
         setError(
@@ -2773,7 +2774,7 @@ function ProjectDetailPage() {
   async function addMember(event) {
     event.preventDefault();
     try {
-      const { data } = await api.post(`/api/projects/${id}/members`, {
+      const { data } = await api.post(`/projects/${id}/members`, {
         email,
         roleInProject,
       });
@@ -2786,9 +2787,7 @@ function ProjectDetailPage() {
 
   async function removeMember(memberId) {
     try {
-      const { data } = await api.delete(
-        `/api/projects/${id}/members/${memberId}`,
-      );
+      const { data } = await api.delete(`/projects/${id}/members/${memberId}`);
       setProject(data.project);
     } catch (requestError) {
       setError(
@@ -2799,7 +2798,7 @@ function ProjectDetailPage() {
 
   async function createMilestone(milestoneData) {
     try {
-      const { data } = await api.post(`/api/projects/${id}/milestones`, {
+      const { data } = await api.post(`/projects/${id}/milestones`, {
         ...milestoneData,
         project: id,
       });
@@ -2819,7 +2818,7 @@ function ProjectDetailPage() {
   async function updateMilestone(milestoneId, milestoneData) {
     try {
       const { data } = await api.put(
-        `/api/projects/${id}/milestones/${milestoneId}`,
+        `/projects/${id}/milestones/${milestoneId}`,
         milestoneData,
       );
       setMilestones((current) =>
@@ -2838,7 +2837,7 @@ function ProjectDetailPage() {
   async function deleteMilestone(milestoneId) {
     if (!window.confirm("Delete this milestone?")) return;
     try {
-      await api.delete(`/api/projects/${id}/milestones/${milestoneId}`);
+      await api.delete(`/projects/${id}/milestones/${milestoneId}`);
       setMilestones((current) => current.filter((m) => m._id !== milestoneId));
     } catch (requestError) {
       setError(
@@ -2861,6 +2860,17 @@ function ProjectDetailPage() {
     (user?.role === "PROJECT_MANAGER" &&
       ((project.manager?._id || project.manager) === user?.id ||
         (project.manager?._id || project.manager) === user?._id));
+  const currentUserId = user?.id || user?._id;
+  const isParticipant = [
+    project.manager,
+    project.teamLead,
+    ...(project.members || []),
+    ...(project.stakeholders || []),
+  ].some(
+    (participant) =>
+      (participant?._id || participant)?.toString() === currentUserId,
+  );
+  const isReadOnlyViewer = !canManage && !isParticipant;
 
   function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString();
@@ -2895,6 +2905,13 @@ function ProjectDetailPage() {
         }
       />
       <ProjectError message={error} />
+      {isReadOnlyViewer && (
+        <div className="read-only-notice">
+          <strong>Read-only project view.</strong> You can review this active
+          project, its participants, and milestones, but you are not assigned to
+          its team.
+        </div>
+      )}
       <div className="detail-grid">
         <Card>
           <div className="section-heading">
@@ -3159,7 +3176,7 @@ function SearchPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/api/search", { params: { q: trimmed } });
+      const response = await api.get("/search", { params: { q: trimmed } });
       setResults({
         projects: response.data.projects || [],
         tasks: response.data.tasks || [],

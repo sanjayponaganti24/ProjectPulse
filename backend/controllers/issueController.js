@@ -26,6 +26,7 @@ function canManage(project, user) {
 
 function canView(project, user) {
   if (user.role === 'ORGANISATION_ADMIN') return true
+  if (project.status === 'ACTIVE') return true
   if (canManage(project, user)) return true
   const userId = user._id.toString()
   if (project.members && project.members.some((m) => m.toString() === userId)) return true
@@ -33,12 +34,22 @@ function canView(project, user) {
   return false
 }
 
+function isProjectParticipant(project, user) {
+  const userId = user._id.toString()
+  return Boolean(
+    (project.manager && project.manager.toString() === userId) ||
+    (project.teamLead && project.teamLead.toString() === userId) ||
+    (project.members && project.members.some((m) => m.toString() === userId)) ||
+    (project.stakeholders && project.stakeholders.some((s) => s.toString() === userId)),
+  )
+}
+
 async function loadProject(projectId, res) {
   if (!validId(projectId)) {
     res.status(400).json({ success: false, message: 'A valid project ID is required.' })
     return null
   }
-  const project = await Project.findById(projectId).select('manager teamLead members stakeholders')
+  const project = await Project.findById(projectId).select('status manager teamLead members stakeholders')
   if (!project) {
     res.status(404).json({ success: false, message: 'Project not found.' })
     return null
@@ -115,6 +126,7 @@ export async function listIssues(req, res, next) {
           { teamLead: req.user._id },
           { members: req.user._id },
           { stakeholders: req.user._id },
+          { status: 'ACTIVE' },
         ],
       }).select('_id')
       filter.project = { $in: projects.map((p) => p._id) }
@@ -159,6 +171,10 @@ export async function createIssue(req, res, next) {
       res.status(403).json({ success: false, message: 'You do not have access to this project.' })
       return
     }
+    if (!isProjectParticipant(project, req.user) || req.user.role === 'STAKEHOLDER') {
+      res.status(403).json({ success: false, message: 'Read-only viewers cannot report issues.' })
+      return
+    }
 
     const isProjectManagerOrLead = canManage(project, req.user)
     if (!isProjectManagerOrLead && req.body.assignedTo !== undefined && req.body.assignedTo !== null) {
@@ -200,6 +216,11 @@ export async function updateIssue(req, res, next) {
     if (!issue) return
     const project = await loadProject(issue.project, res)
     if (!project) return
+
+    if (!isProjectParticipant(project, req.user)) {
+      res.status(403).json({ success: false, message: 'Read-only viewers cannot edit issues.' })
+      return
+    }
 
     const isAuthorizedManager = canManage(project, req.user)
     const isReporter = issue.reportedBy && issue.reportedBy.toString() === req.user._id.toString()

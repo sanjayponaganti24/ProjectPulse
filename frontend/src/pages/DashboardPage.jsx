@@ -142,9 +142,9 @@ export default function DashboardPage() {
     try {
       const [projectsResponse, tasksResponse, issuesResponse] =
         await Promise.all([
-          api.get("/api/projects"),
-          api.get("/api/tasks"),
-          api.get("/api/issues"),
+          api.get("/projects"),
+          api.get("/tasks"),
+          api.get("/issues"),
         ]);
       setProjects(projectsResponse.data.projects || []);
       setTasks(tasksResponse.data.tasks || []);

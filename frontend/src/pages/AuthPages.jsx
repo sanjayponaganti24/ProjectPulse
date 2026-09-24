@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ROLE_LABELS } from "../components/Sidebar.jsx";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, XCircle } from "lucide-react";
 import { Button } from "../components/UI.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import api from "../services/api.js";
@@ -26,9 +26,13 @@ const ROLE_DESCRIPTIONS = {
 
 export function AuthPage({ mode }) {
   const isLogin = mode === "login";
+
   const { login, register } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -190,6 +194,7 @@ export function AuthPage({ mode }) {
       <div className="auth-brand">
         <Link to="/" className="brand">
           <span className="brand-mark">P</span>
+
           <span>
             Project<span className="brand-accent">Pulse</span>
           </span>
@@ -207,7 +212,9 @@ export function AuthPage({ mode }) {
           <p>
             {isLogin
               ? "Plan clearly, collaborate simply, and keep every deadline visible."
-              : `Join ${orgInfo.name || "ProjectPulse"} to collaborate on active initiatives.`}
+              : `Join ${
+                  orgInfo.name || "ProjectPulse"
+                } to collaborate on active initiatives.`}
           </p>
 
           <div className="auth-quote">
@@ -245,6 +252,7 @@ export function AuthPage({ mode }) {
               }}
             >
               <CheckCircle2 size={16} />
+
               <span>
                 Account created successfully! Please sign in with your
                 credentials.
@@ -259,19 +267,17 @@ export function AuthPage({ mode }) {
           ) : (
             <form onSubmit={submit}>
               {!isLogin && (
-                <>
-                  <label>
-                    Full name
-                    <input
-                      name="name"
-                      value={form.name}
-                      onChange={update}
-                      placeholder="Your full name"
-                      autoComplete="name"
-                      required
-                    />
-                  </label>
-                </>
+                <label>
+                  Full name
+                  <input
+                    name="name"
+                    value={form.name}
+                    onChange={update}
+                    placeholder="Your full name"
+                    autoComplete="name"
+                    required
+                  />
+                </label>
               )}
 
               <label>
@@ -289,30 +295,90 @@ export function AuthPage({ mode }) {
 
               <label>
                 Password
-                <input
-                  name="password"
-                  type="password"
-                  value={form.password}
-                  onChange={update}
-                  placeholder="At least 6 characters"
-                  autoComplete={isLogin ? "current-password" : "new-password"}
-                  required
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={update}
+                    placeholder="At least 6 characters"
+                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    required
+                    style={{ paddingRight: 44 }}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      right: 10,
+                      transform: "translateY(-50%)",
+                      border: 0,
+                      background: "transparent",
+                      color: "#667085",
+                      cursor: "pointer",
+                      display: "grid",
+                      placeItems: "center",
+                      padding: 4,
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
               </label>
 
               {!isLogin && (
                 <>
                   <label>
                     Confirm password
-                    <input
-                      name="confirmPassword"
-                      type="password"
-                      value={form.confirmPassword}
-                      onChange={update}
-                      placeholder="Repeat your password"
-                      autoComplete="new-password"
-                      required
-                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={form.confirmPassword}
+                        onChange={update}
+                        placeholder="Repeat your password"
+                        autoComplete="new-password"
+                        required
+                        style={{ paddingRight: 44 }}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword((value) => !value)
+                        }
+                        aria-label={
+                          showConfirmPassword
+                            ? "Hide confirm password"
+                            : "Show confirm password"
+                        }
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          right: 10,
+                          transform: "translateY(-50%)",
+                          border: 0,
+                          background: "transparent",
+                          color: "#667085",
+                          cursor: "pointer",
+                          display: "grid",
+                          placeItems: "center",
+                          padding: 4,
+                        }}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff size={17} />
+                        ) : (
+                          <Eye size={17} />
+                        )}
+                      </button>
+                    </div>
                   </label>
 
                   <label>

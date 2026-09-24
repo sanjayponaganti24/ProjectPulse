@@ -52,7 +52,7 @@ export default function Topbar({ onToggleMobile }) {
   useEffect(() => {
     let active = true;
     api
-      .get("/api/notifications")
+      .get("/notifications")
       .then((response) => {
         if (active) setUnreadCount(response.data.unreadCount || 0);
       })

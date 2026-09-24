@@ -16,12 +16,23 @@ function validId(value) {
 
 function canView(project, user) {
   if (user.role === 'ORGANISATION_ADMIN') return true
+  if (project.status === 'ACTIVE') return true
   const userId = user._id.toString()
   if (project.manager && project.manager.toString() === userId) return true
   if (project.teamLead && project.teamLead.toString() === userId) return true
   if (project.members && project.members.some((m) => m.toString() === userId)) return true
   if (project.stakeholders && project.stakeholders.some((s) => s.toString() === userId)) return true
   return false
+}
+
+function isProjectParticipant(project, user) {
+  const userId = user._id.toString()
+  return Boolean(
+    (project.manager && project.manager.toString() === userId) ||
+    (project.teamLead && project.teamLead.toString() === userId) ||
+    (project.members && project.members.some((m) => m.toString() === userId)) ||
+    (project.stakeholders && project.stakeholders.some((s) => s.toString() === userId)),
+  )
 }
 
 function canManageTasks(project, user) {
@@ -37,7 +48,7 @@ async function loadProject(projectId, res) {
     res.status(400).json({ success: false, message: 'A valid project ID is required.' })
     return null
   }
-  const project = await Project.findById(projectId).select('manager teamLead members stakeholders')
+  const project = await Project.findById(projectId).select('status manager teamLead members stakeholders')
   if (!project) {
     res.status(404).json({ success: false, message: 'Project not found.' })
     return null
@@ -104,6 +115,7 @@ async function projectIdsForUser(user) {
       { teamLead: user._id },
       { members: user._id },
       { stakeholders: user._id },
+      { status: 'ACTIVE' },
     ],
   }
   const projects = await Project.find(filter).select('_id')
@@ -189,6 +201,11 @@ export async function updateTask(req, res, next) {
     // Stakeholders cannot update anything
     if (req.user.role === 'STAKEHOLDER') {
       res.status(403).json({ success: false, message: 'Stakeholders have read-only access.' })
+      return
+    }
+
+    if (!isProjectParticipant(project, req.user)) {
+      res.status(403).json({ success: false, message: 'Read-only viewers cannot update project tasks.' })
       return
     }
 

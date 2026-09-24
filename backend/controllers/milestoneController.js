@@ -15,6 +15,7 @@ function isAuthorizedPMOrAdmin(project, user) {
 
 function canView(project, user) {
   if (user.role === 'ORGANISATION_ADMIN') return true
+  if (project.status === 'ACTIVE') return true
   if (isAuthorizedPMOrAdmin(project, user)) return true
   const userId = user._id.toString()
   if (project.teamLead && project.teamLead.toString() === userId) return true
@@ -28,7 +29,7 @@ async function loadProject(projectId, res) {
     res.status(400).json({ success: false, message: 'A valid project ID is required.' })
     return null
   }
-  const project = await Project.findById(projectId).select('manager teamLead members stakeholders')
+  const project = await Project.findById(projectId).select('status manager teamLead members stakeholders')
   if (!project) {
     res.status(404).json({ success: false, message: 'Project not found.' })
     return null

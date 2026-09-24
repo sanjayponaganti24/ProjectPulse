@@ -39,6 +39,7 @@ function canManage(project, user) {
 
 function canView(project, user) {
   if (user.role === 'ORGANISATION_ADMIN') return true
+  if (project.status === 'ACTIVE') return true
   if (canManage(project, user)) return true
 
   const userId = user._id.toString()
@@ -67,26 +68,27 @@ export async function listProjects(req, res, next) {
   try {
     let filter = {}
     if (req.user.role !== 'ORGANISATION_ADMIN') {
-      filter.$or = [
+      const participantAccess = [
         { manager: req.user._id },
         { teamLead: req.user._id },
         { members: req.user._id },
         { stakeholders: req.user._id },
       ]
+      filter = req.query.status
+        ? { $and: [{ $or: participantAccess }, { status: req.query.status }] }
+        : { $or: [...participantAccess, { status: 'ACTIVE' }] }
     }
 
-    if (req.query.status) filter.status = req.query.status
+    if (req.query.status && req.user.role === 'ORGANISATION_ADMIN') {
+      filter.status = req.query.status
+    }
     if (req.query.search) {
       const searchRegex = { $regex: req.query.search, $options: 'i' }
-      if (filter.$or) {
-        filter = {
-          $and: [
-            { $or: filter.$or },
-            { $or: [{ name: searchRegex }, { description: searchRegex }] },
-          ],
-        }
-      } else {
-        filter.$or = [{ name: searchRegex }, { description: searchRegex }]
+      filter = {
+        $and: [
+          filter,
+          { $or: [{ name: searchRegex }, { description: searchRegex }] },
+        ],
       }
     }
 

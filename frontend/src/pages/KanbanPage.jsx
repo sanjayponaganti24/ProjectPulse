@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
@@ -8,8 +8,8 @@ import {
   useSensors,
   useDraggable,
   useDroppable,
-} from '@dnd-kit/core'
-import { Plus, Calendar, CheckSquare, Clock, CheckCircle2 } from 'lucide-react'
+} from "@dnd-kit/core";
+import { Plus, Calendar, CheckSquare, Clock, CheckCircle2 } from "lucide-react";
 import {
   PageHeader,
   Badge,
@@ -17,37 +17,50 @@ import {
   Button,
   LoadingState,
   ErrorState,
-} from '../components/UI.jsx'
-import { useAuth } from '../context/AuthContext.jsx'
-import api from '../services/api.js'
+} from "../components/UI.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import api from "../services/api.js";
 
 const COLUMNS = [
-  { id: 'TODO', label: 'To Do', icon: Clock, color: '#94a3b8' },
-  { id: 'IN_PROGRESS', label: 'In Progress', icon: CheckSquare, color: '#f59e0b' },
-  { id: 'COMPLETED', label: 'Completed', icon: CheckCircle2, color: '#10b981' },
-]
+  { id: "TODO", label: "To Do", icon: Clock, color: "#94a3b8" },
+  {
+    id: "IN_PROGRESS",
+    label: "In Progress",
+    icon: CheckSquare,
+    color: "#f59e0b",
+  },
+  { id: "COMPLETED", label: "Completed", icon: CheckCircle2, color: "#10b981" },
+];
 
 function KanbanCardItem({ task, isOverlay = false }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: task._id,
-  })
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: task._id,
+    });
 
-  const style = transform && !isOverlay
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined
+  const style =
+    transform && !isOverlay
+      ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+      : undefined;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`kanban-card ${isDragging ? 'dragging' : ''} ${isOverlay ? 'overlay' : ''}`}
+      className={`kanban-card ${isDragging ? "dragging" : ""} ${isOverlay ? "overlay" : ""}`}
       {...listeners}
       {...attributes}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <Badge tone={task.priority}>{task.priority}</Badge>
-        <span style={{ fontSize: 11, color: 'var(--text-light)' }}>
-          {task.project?.name || 'Project'}
+        <span style={{ fontSize: 11, color: "var(--text-light)" }}>
+          {task.project?.name || "Project"}
         </span>
       </div>
 
@@ -57,9 +70,9 @@ function KanbanCardItem({ task, isOverlay = false }) {
         style={{
           fontSize: 13,
           fontWeight: 600,
-          color: '#0f172a',
+          color: "#0f172a",
           lineHeight: 1.4,
-          display: 'block',
+          display: "block",
         }}
       >
         {task.title}
@@ -67,41 +80,57 @@ function KanbanCardItem({ task, isOverlay = false }) {
 
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           marginTop: 6,
           paddingTop: 8,
-          borderTop: '1px solid var(--border-subtle)',
+          borderTop: "1px solid var(--border-subtle)",
           fontSize: 11,
-          color: 'var(--text-muted)',
+          color: "var(--text-muted)",
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Avatar name={task.assignedTo?.name || 'User'} avatar={task.assignedTo?.avatar} size="xs" />
-          <span style={{ maxWidth: 85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {task.assignedTo?.name || 'Unassigned'}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Avatar
+            name={task.assignedTo?.name || "User"}
+            avatar={task.assignedTo?.avatar}
+            size="xs"
+          />
+          <span
+            style={{
+              maxWidth: 85,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {task.assignedTo?.name || "Unassigned"}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <Calendar size={12} />
-          <span>{new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+          <span>
+            {new Date(task.dueDate).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function KanbanColumnDroppable({ column, tasks }) {
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
-  })
+  });
 
-  const Icon = column.icon
+  const Icon = column.icon;
 
   return (
-    <div ref={setNodeRef} className={`kanban-col ${isOver ? 'over' : ''}`}>
+    <div ref={setNodeRef} className={`kanban-col ${isOver ? "over" : ""}`}>
       <div className="kanban-header">
         <div className="kanban-title">
           <Icon size={16} color={column.color} />
@@ -110,7 +139,9 @@ function KanbanColumnDroppable({ column, tasks }) {
         <span className="kanban-count">{tasks.length}</span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+      <div
+        style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}
+      >
         {tasks.map((task) => (
           <KanbanCardItem key={task._id} task={task} />
         ))}
@@ -118,13 +149,13 @@ function KanbanColumnDroppable({ column, tasks }) {
         {tasks.length === 0 && (
           <div
             style={{
-              padding: '32px 16px',
-              textAlign: 'center',
-              border: '1.5px dashed var(--border-hover)',
+              padding: "32px 16px",
+              textAlign: "center",
+              border: "1.5px dashed var(--border-hover)",
               borderRadius: 8,
-              color: 'var(--text-light)',
+              color: "var(--text-light)",
               fontSize: 12,
-              margin: 'auto 0',
+              margin: "auto 0",
             }}
           >
             Drop items here
@@ -132,84 +163,87 @@ function KanbanColumnDroppable({ column, tasks }) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export default function KanbanPage() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const [tasks, setTasks] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [activeTask, setActiveTask] = useState(null)
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeTask, setActiveTask] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 6,
       },
-    })
-  )
+    }),
+  );
 
   async function loadTasks() {
-    setLoading(true)
-    setError('')
+    setLoading(true);
+    setError("");
     try {
-      const res = await api.get('/api/tasks')
-      setTasks(res.data.tasks || [])
+      const res = await api.get("/tasks");
+      setTasks(res.data.tasks || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load board tasks.')
+      setError(err.response?.data?.message || "Failed to load board tasks.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadTasks()
-  }, [])
+    loadTasks();
+  }, []);
 
   function handleDragStart(event) {
-    const task = tasks.find((t) => t._id === event.active.id)
+    const task = tasks.find((t) => t._id === event.active.id);
     if (task) {
-      setActiveTask(task)
+      setActiveTask(task);
     }
   }
 
   async function handleDragEnd(event) {
-    const { active, over } = event
-    setActiveTask(null)
+    const { active, over } = event;
+    setActiveTask(null);
 
-    if (!over) return
+    if (!over) return;
 
-    const taskId = active.id
-    const newStatus = over.id
+    const taskId = active.id;
+    const newStatus = over.id;
 
-    const task = tasks.find((t) => t._id === taskId)
-    if (!task || task.status === newStatus) return
+    const task = tasks.find((t) => t._id === taskId);
+    if (!task || task.status === newStatus) return;
 
     // Optimistic UI update
-    const previousTasks = [...tasks]
+    const previousTasks = [...tasks];
     setTasks((prev) =>
-      prev.map((t) => (t._id === taskId ? { ...t, status: newStatus } : t))
-    )
+      prev.map((t) => (t._id === taskId ? { ...t, status: newStatus } : t)),
+    );
 
     try {
-      const res = await api.patch(`/api/tasks/${taskId}`, { status: newStatus })
+      const res = await api.patch(`/tasks/${taskId}`, { status: newStatus });
       setTasks((prev) =>
-        prev.map((t) => (t._id === taskId ? res.data.task : t))
-      )
+        prev.map((t) => (t._id === taskId ? res.data.task : t)),
+      );
     } catch (err) {
       // Rollback on failure
-      setTasks(previousTasks)
-      alert(err.response?.data?.message || 'Failed to update task status. Rolled back.')
+      setTasks(previousTasks);
+      alert(
+        err.response?.data?.message ||
+          "Failed to update task status. Rolled back.",
+      );
     }
   }
 
-  const isManager = user?.role === 'PROJECT_MANAGER'
+  const isManager = user?.role === "PROJECT_MANAGER";
 
-  if (loading) return <LoadingState message="Loading interactive board..." />
-  if (error) return <ErrorState message={error} onRetry={loadTasks} />
+  if (loading) return <LoadingState message="Loading interactive board..." />;
+  if (error) return <ErrorState message={error} onRetry={loadTasks} />;
 
   return (
     <div>
@@ -219,7 +253,7 @@ export default function KanbanPage() {
         description="Drag cards across execution stages to update status in real time."
         actions={
           isManager && (
-            <Button icon={Plus} onClick={() => navigate('/tasks/new')}>
+            <Button icon={Plus} onClick={() => navigate("/tasks/new")}>
               Add Task
             </Button>
           )
@@ -246,5 +280,5 @@ export default function KanbanPage() {
         </DragOverlay>
       </DndContext>
     </div>
-  )
+  );
 }

@@ -20,7 +20,7 @@ export default function NotificationsPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/api/notifications");
+      const response = await api.get("/notifications");
       setNotifications(response.data.notifications || []);
     } catch (requestError) {
       setError(
@@ -38,7 +38,7 @@ export default function NotificationsPage() {
   async function markRead(notification) {
     if (!notification.isRead) {
       try {
-        await api.patch(`/api/notifications/${notification._id}/read`);
+        await api.patch(`/notifications/${notification._id}/read`);
         setNotifications((current) =>
           current.map((item) =>
             item._id === notification._id ? { ...item, isRead: true } : item,
@@ -53,7 +53,7 @@ export default function NotificationsPage() {
 
   async function markAllRead() {
     try {
-      await api.patch("/api/notifications/read-all");
+      await api.patch("/notifications/read-all");
       setNotifications((current) =>
         current.map((notification) => ({ ...notification, isRead: true })),
       );

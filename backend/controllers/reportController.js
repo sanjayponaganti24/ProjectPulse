@@ -13,6 +13,7 @@ async function getAccessibleProjectIds(user) {
       { teamLead: user._id },
       { members: user._id },
       { stakeholders: user._id },
+      { status: 'ACTIVE' },
     ],
   }
   const projects = await Project.find(filter).select('_id')
