@@ -6,9 +6,14 @@ import { Button } from "../components/UI.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import api from "../services/api.js";
 
+const REGISTRATION_ROLES = [
+  "PROJECT_MANAGER",
+  "TEAM_LEAD",
+  "MEMBER",
+  "STAKEHOLDER",
+];
+
 const ROLE_DESCRIPTIONS = {
-  ORGANISATION_ADMIN:
-    "Full control to manage users, teams, projects, roles, and organisation settings.",
   PROJECT_MANAGER:
     "Plan projects, manage milestones, sprints, assignments, and reports.",
   TEAM_LEAD:
@@ -31,94 +36,141 @@ export function AuthPage({ mode }) {
     password: "",
     confirmPassword: "",
     role: "MEMBER",
-    organisationName: "ProjectPulse Workspace",
   });
-  const [adminExists, setAdminExists] = useState(null);
-  const [registrationRoles, setRegistrationRoles] = useState([]);
-  const [orgInfo, setOrgInfo] = useState({ name: "ProjectPulse Workspace" });
+
+  const [registrationRoles, setRegistrationRoles] = useState(
+    REGISTRATION_ROLES.map((role) => ({
+      role,
+      name: ROLE_LABELS[role] || role,
+    })),
+  );
+
+  const [orgInfo, setOrgInfo] = useState({
+    name: "ProjectPulse Workspace",
+  });
+
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loadingRoles, setLoadingRoles] = useState(!isLogin);
 
   useEffect(() => {
     if (isLogin) {
-      setAdminExists(true);
+      setLoadingRoles(false);
       return;
     }
 
-    setAdminExists(null);
-    api
-      .get("/api/auth/roles")
-      .then((res) => {
-        const exists = !!res.data.adminExists;
-        setAdminExists(exists);
-        if (res.data.organisation) {
-          setOrgInfo(res.data.organisation);
+    let mounted = true;
+
+    async function loadRegistrationInfo() {
+      try {
+        const response = await api.get("/auth/roles");
+
+        if (!mounted) return;
+
+        const roles = Array.isArray(response.data?.registrationRoles)
+          ? response.data.registrationRoles.filter((entry) =>
+              REGISTRATION_ROLES.includes(entry.role),
+            )
+          : [];
+
+        if (response.data?.organisation) {
+          setOrgInfo(response.data.organisation);
         }
-        const roles = res.data.registrationRoles || [];
-        setRegistrationRoles(roles);
-        if (!exists) {
-          setForm((prev) => ({ ...prev, role: "ORGANISATION_ADMIN" }));
-        } else if (roles.length > 0) {
-          setForm((prev) => ({
-            ...prev,
-            role: roles.some((r) => r.role === prev.role)
-              ? prev.role
+
+        if (roles.length > 0) {
+          setRegistrationRoles(roles);
+
+          setForm((previous) => ({
+            ...previous,
+            role: roles.some((entry) => entry.role === previous.role)
+              ? previous.role
               : roles[0].role,
           }));
         }
-      })
-      .catch(() => {
-        setAdminExists(true);
-        setRegistrationRoles([
-          { role: "MEMBER", name: "Developer / Member" },
-          { role: "PROJECT_MANAGER", name: "Project Manager" },
-          { role: "TEAM_LEAD", name: "Team Lead" },
-          { role: "STAKEHOLDER", name: "Stakeholder" },
-        ]);
-      });
+      } catch (requestError) {
+        if (!mounted) return;
+
+        setError(
+          requestError.response?.data?.message ||
+            "Unable to load workspace registration information.",
+        );
+      } finally {
+        if (mounted) {
+          setLoadingRoles(false);
+        }
+      }
+    }
+
+    loadRegistrationInfo();
+
+    return () => {
+      mounted = false;
+    };
   }, [isLogin]);
 
-  const update = (event) =>
-    setForm({ ...form, [event.target.name]: event.target.value });
+  function update(event) {
+    const { name, value } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  }
 
   async function submit(event) {
     event.preventDefault();
     setError("");
+
     if (
       !form.email ||
       !form.password ||
       (!isLogin && (!form.name || !form.confirmPassword))
     ) {
-      return setError("Please complete all required fields.");
+      setError("Please complete all required fields.");
+      return;
     }
+
     if (!isLogin && form.password !== form.confirmPassword) {
-      return setError("Passwords do not match.");
+      setError("Passwords do not match.");
+      return;
     }
+
     if (!isLogin && form.password.length < 6) {
-      return setError("Password must be at least 6 characters.");
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (!isLogin && !REGISTRATION_ROLES.includes(form.role)) {
+      setError("Please select a valid workspace role.");
+      return;
     }
 
     setSubmitting(true);
+
     try {
       if (isLogin) {
-        await login({ email: form.email, password: form.password });
-        navigate("/dashboard");
-      } else {
-        const isFirstUser = adminExists === false;
-        const payload = {
-          name: form.name,
+        await login({
           email: form.email,
           password: form.password,
-          role: isFirstUser ? "ORGANISATION_ADMIN" : form.role,
-          organisationName: isFirstUser ? form.organisationName : undefined,
-        };
-        const res = await register(payload);
-        if (isFirstUser || res?.user?.role === "ORGANISATION_ADMIN") {
-          navigate("/dashboard");
-        } else {
-          navigate("/login", { state: { registered: true } });
-        }
+        });
+
+        navigate("/dashboard");
+        return;
       }
+
+      await register({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+      });
+
+      navigate("/login", {
+        state: {
+          registered: true,
+          email: form.email,
+        },
+      });
     } catch (requestError) {
       setError(
         requestError.response?.data?.message ||
@@ -132,8 +184,6 @@ export function AuthPage({ mode }) {
   }
 
   const registeredNotice = location.state?.registered;
-  const isFirstUserSetup = !isLogin && adminExists === false;
-  const isRegisterReady = isLogin || adminExists !== null;
 
   return (
     <div className="auth-page">
@@ -144,44 +194,38 @@ export function AuthPage({ mode }) {
             Project<span className="brand-accent">Pulse</span>
           </span>
         </Link>
+
         <div className="auth-message">
           <div className="eyebrow">Your work, in focus</div>
+
           <h1>
             {isLogin
               ? "Welcome back to your workspace."
-              : isFirstUserSetup
-                ? "Setup your organisation."
-                : "Build momentum with your team."}
+              : "Build momentum with your team."}
           </h1>
+
           <p>
             {isLogin
               ? "Plan clearly, collaborate simply, and keep every deadline visible."
-              : isFirstUserSetup
-                ? "Initialize the workspace, configure your organisation, and begin as Organisation Admin."
-                : `Join ${orgInfo.name || "ProjectPulse"} to collaborate on active initiatives.`}
+              : `Join ${orgInfo.name || "ProjectPulse"} to collaborate on active initiatives.`}
           </p>
+
           <div className="auth-quote">
             <CheckCircle2 size={18} />
             <span>Everything your team needs to move forward.</span>
           </div>
         </div>
       </div>
+
       <div className="auth-panel">
         <div className="auth-card">
           <div className="auth-heading">
-            <h2>
-              {isLogin
-                ? "Sign in"
-                : isFirstUserSetup
-                  ? "Create organisation"
-                  : "Create your account"}
-            </h2>
+            <h2>{isLogin ? "Sign in" : "Create your account"}</h2>
+
             <p>
               {isLogin
                 ? "Enter your credentials to continue."
-                : isFirstUserSetup
-                  ? "First user onboarding: create workspace & organisation admin."
-                  : "Join your team workspace in seconds."}
+                : "Join your team workspace in seconds."}
             </p>
           </div>
 
@@ -208,53 +252,26 @@ export function AuthPage({ mode }) {
             </div>
           )}
 
-          {isFirstUserSetup && (
-            <div
-              style={{
-                background: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                color: "#1e40af",
-                padding: "10px 14px",
-                borderRadius: 8,
-                fontSize: 13,
-                marginBottom: 14,
-              }}
-            >
-              <strong>First-Time Setup:</strong> You are the first user for this
-              instance and will become the{" "}
-              <strong>Organisation Admin</strong>.
-            </div>
-          )}
-
-          {!isRegisterReady && !isLogin ? (
-            <p style={{ color: "#64748b", fontSize: 13 }}>Loading setup…</p>
+          {loadingRoles && !isLogin ? (
+            <p style={{ color: "#64748b", fontSize: 13 }}>
+              Loading workspace roles...
+            </p>
           ) : (
             <form onSubmit={submit}>
-              {isFirstUserSetup && (
-                <label>
-                  Organisation / Workspace name
-                  <input
-                    name="organisationName"
-                    value={form.organisationName}
-                    onChange={update}
-                    placeholder="ProjectPulse Workspace"
-                    required
-                  />
-                </label>
-              )}
-
               {!isLogin && (
-                <label>
-                  Full name
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={update}
-                    placeholder="Your full name"
-                    autoComplete="name"
-                    required
-                  />
-                </label>
+                <>
+                  <label>
+                    Full name
+                    <input
+                      name="name"
+                      value={form.name}
+                      onChange={update}
+                      placeholder="Your full name"
+                      autoComplete="name"
+                      required
+                    />
+                  </label>
+                </>
               )}
 
               <label>
@@ -298,71 +315,46 @@ export function AuthPage({ mode }) {
                     />
                   </label>
 
-                  {adminExists ? (
-                    <>
-                      <label>
-                        Workspace role
-                        <select name="role" value={form.role} onChange={update}>
-                          {registrationRoles.map((entry) => (
-                            <option key={entry.role} value={entry.role}>
-                              {entry.name || ROLE_LABELS[entry.role] || entry.role}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <div
-                        style={{
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 8,
-                          padding: "10px 12px",
-                          fontSize: 12,
-                          color: "#475569",
-                          marginBottom: 14,
-                        }}
-                      >
-                        <strong>
-                          {ROLE_LABELS[form.role] || form.role}:
-                        </strong>{" "}
-                        {ROLE_DESCRIPTIONS[form.role]}
-                        <div
-                          style={{
-                            marginTop: 4,
-                            color: "#94a3b8",
-                            fontSize: 11,
-                          }}
-                        >
-                          Organisation Admin accounts are assigned by workspace
-                          administrators.
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    adminExists === false && (
-                      <div
-                        style={{
-                          background: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 8,
-                          padding: "10px 12px",
-                          fontSize: 12,
-                          color: "#475569",
-                          marginBottom: 14,
-                        }}
-                      >
-                        <strong>Role: Organisation Admin</strong>
-                        <p
-                          style={{
-                            margin: "4px 0 0",
-                            fontSize: 11,
-                            color: "#64748b",
-                          }}
-                        >
-                          {ROLE_DESCRIPTIONS.ORGANISATION_ADMIN}
-                        </p>
-                      </div>
-                    )
-                  )}
+                  <label>
+                    Workspace role
+                    <select
+                      name="role"
+                      value={form.role}
+                      onChange={update}
+                      required
+                    >
+                      {registrationRoles.map((entry) => (
+                        <option key={entry.role} value={entry.role}>
+                          {entry.name || ROLE_LABELS[entry.role] || entry.role}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 8,
+                      padding: "10px 12px",
+                      fontSize: 12,
+                      color: "#475569",
+                      marginBottom: 14,
+                    }}
+                  >
+                    <strong>{ROLE_LABELS[form.role] || form.role}:</strong>{" "}
+                    {ROLE_DESCRIPTIONS[form.role]}
+                    <div
+                      style={{
+                        marginTop: 4,
+                        color: "#94a3b8",
+                        fontSize: 11,
+                      }}
+                    >
+                      Organisation Admin accounts are created by the system
+                      administrator.
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -378,9 +370,7 @@ export function AuthPage({ mode }) {
                   ? "Please wait..."
                   : isLogin
                     ? "Sign in"
-                    : isFirstUserSetup
-                      ? "Create workspace & admin"
-                      : "Create account"}{" "}
+                    : "Create account"}{" "}
                 <ArrowRight size={16} />
               </Button>
             </form>
