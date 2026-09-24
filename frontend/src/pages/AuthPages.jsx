@@ -1,350 +1,399 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowRight, AlertCircle, CheckCircle2, XCircle, Users, CalendarDays } from 'lucide-react'
-import { Button, Badge } from '../components/UI.jsx'
-import { useAuth } from '../context/AuthContext.jsx'
-import api from '../services/api.js'
-import { ROLE_LABELS } from '../components/Sidebar.jsx'
+import { useEffect, useState } from "react";
+import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ROLE_LABELS } from "../components/Sidebar.jsx";
+import { Button } from "../components/UI.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import api from "../services/api.js";
 
 const ROLE_DESCRIPTIONS = {
   ORGANISATION_ADMIN:
-    'Full control to manage users, teams, projects, roles, and organisation settings.',
+    "Full control to manage users, teams, projects, roles, and organisation settings.",
   PROJECT_MANAGER:
-    'Plan projects, manage milestones, sprints, assignments, and reports.',
+    "Plan projects, manage milestones, sprints, assignments, and reports.",
   TEAM_LEAD:
-    'Manage team workload, review tasks, resolve blockers, and coordinate releases.',
+    "Manage team workload, review tasks, resolve blockers, and coordinate releases.",
   MEMBER:
-    'Work on assigned tasks, update progress, comment, and report issues.',
+    "Work on assigned tasks, update progress, comment, and report issues.",
   STAKEHOLDER:
-    'View authorized project progress, milestones, risks, and reports (Read-only).',
-}
+    "View authorized project progress, milestones, risks, and reports (Read-only).",
+};
 
-export function LoginPage() {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    if (!email || !password) {
-      setError('Please enter both email and password.')
-      return
-    }
-
-    setLoading(true)
-    try {
-      await login({ email, password })
-      navigate('/dashboard')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f8fafc', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 420 }}>
-        {/* Brand */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                borderRadius: 9,
-                display: 'grid',
-                placeItems: 'center',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: 18,
-              }}
-            >
-              P
-            </div>
-            <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 700, fontSize: 20 }}>
-              Project<span style={{ color: '#4f46e5' }}>Pulse</span>
-            </span>
-          </Link>
-          <h2 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 22, fontWeight: 700, marginTop: 14, color: '#0f172a' }}>
-            Sign in to your workspace
-          </h2>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-            Enter your credentials to access your projects
-          </p>
-        </div>
-
-        {/* Card */}
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 14,
-            padding: 28,
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
-          }}
-        >
-          {error && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                background: '#fef2f2',
-                border: '1px solid #fee2e2',
-                color: '#991b1b',
-                padding: '10px 12px',
-                borderRadius: 8,
-                fontSize: 12,
-                marginBottom: 16,
-              }}
-            >
-              <AlertCircle size={16} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label">Email address</label>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <label className="form-label">Password</label>
-              </div>
-              <input
-                type="password"
-                className="form-input"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
-            </div>
-
-            <Button type="submit" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
-              {loading ? 'Authenticating...' : 'Sign in to workspace'}
-            </Button>
-          </form>
-
-        </div>
-
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b', marginTop: 20 }}>
-          Don't have an account?{' '}
-          <Link to="/register" style={{ color: '#4f46e5', fontWeight: 600 }}>
-            Create one
-          </Link>
-        </p>
-      </div>
-    </div>
-  )
-}
-
-export function RegisterPage() {
-  const { register } = useAuth()
-  const navigate = useNavigate()
+export function AuthPage({ mode }) {
+  const isLogin = mode === "login";
+  const { login, register } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'MEMBER',
-  })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    role: "MEMBER",
+    organisationName: "ProjectPulse Workspace",
+  });
+  const [adminExists, setAdminExists] = useState(null);
+  const [registrationRoles, setRegistrationRoles] = useState([]);
+  const [orgInfo, setOrgInfo] = useState({ name: "ProjectPulse Workspace" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  function update(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    if (!form.name || !form.email || !form.password || !form.confirmPassword) {
-      setError('Please complete all required fields.')
-      return
-    }
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters.')
-      return
-    }
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match.')
-      return
+  useEffect(() => {
+    if (isLogin) {
+      setAdminExists(true);
+      return;
     }
 
-    setLoading(true)
-    try {
-      await register({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
-        role: form.role,
+    setAdminExists(null);
+    api
+      .get("/api/auth/roles")
+      .then((res) => {
+        const exists = !!res.data.adminExists;
+        setAdminExists(exists);
+        if (res.data.organisation) {
+          setOrgInfo(res.data.organisation);
+        }
+        const roles = res.data.registrationRoles || [];
+        setRegistrationRoles(roles);
+        if (!exists) {
+          setForm((prev) => ({ ...prev, role: "ORGANISATION_ADMIN" }));
+        } else if (roles.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            role: roles.some((r) => r.role === prev.role)
+              ? prev.role
+              : roles[0].role,
+          }));
+        }
       })
-      navigate('/login')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Unable to complete registration.')
+      .catch(() => {
+        setAdminExists(true);
+        setRegistrationRoles([
+          { role: "MEMBER", name: "Developer / Member" },
+          { role: "PROJECT_MANAGER", name: "Project Manager" },
+          { role: "TEAM_LEAD", name: "Team Lead" },
+          { role: "STAKEHOLDER", name: "Stakeholder" },
+        ]);
+      });
+  }, [isLogin]);
+
+  const update = (event) =>
+    setForm({ ...form, [event.target.name]: event.target.value });
+
+  async function submit(event) {
+    event.preventDefault();
+    setError("");
+    if (
+      !form.email ||
+      !form.password ||
+      (!isLogin && (!form.name || !form.confirmPassword))
+    ) {
+      return setError("Please complete all required fields.");
+    }
+    if (!isLogin && form.password !== form.confirmPassword) {
+      return setError("Passwords do not match.");
+    }
+    if (!isLogin && form.password.length < 6) {
+      return setError("Password must be at least 6 characters.");
+    }
+
+    setSubmitting(true);
+    try {
+      if (isLogin) {
+        await login({ email: form.email, password: form.password });
+        navigate("/dashboard");
+      } else {
+        const isFirstUser = adminExists === false;
+        const payload = {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          role: isFirstUser ? "ORGANISATION_ADMIN" : form.role,
+          organisationName: isFirstUser ? form.organisationName : undefined,
+        };
+        const res = await register(payload);
+        if (isFirstUser || res?.user?.role === "ORGANISATION_ADMIN") {
+          navigate("/dashboard");
+        } else {
+          navigate("/login", { state: { registered: true } });
+        }
+      }
+    } catch (requestError) {
+      setError(
+        requestError.response?.data?.message ||
+          (isLogin
+            ? "Invalid email or password."
+            : "Unable to create your account. Please try again."),
+      );
     } finally {
-      setLoading(false)
+      setSubmitting(false);
     }
   }
+
+  const registeredNotice = location.state?.registered;
+  const isFirstUserSetup = !isLogin && adminExists === false;
+  const isRegisterReady = isLogin || adminExists !== null;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f8fafc', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 440 }}>
-        {/* Brand */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-                borderRadius: 9,
-                display: 'grid',
-                placeItems: 'center',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: 18,
-              }}
-            >
-              P
-            </div>
-            <span style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontWeight: 700, fontSize: 20 }}>
-              Project<span style={{ color: '#4f46e5' }}>Pulse</span>
-            </span>
-          </Link>
-          <h2 style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 22, fontWeight: 700, marginTop: 14, color: '#0f172a' }}>
-            Create your account
-          </h2>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-            Join your team workspace on ProjectPulse
+    <div className="auth-page">
+      <div className="auth-brand">
+        <Link to="/" className="brand">
+          <span className="brand-mark">P</span>
+          <span>
+            Project<span className="brand-accent">Pulse</span>
+          </span>
+        </Link>
+        <div className="auth-message">
+          <div className="eyebrow">Your work, in focus</div>
+          <h1>
+            {isLogin
+              ? "Welcome back to your workspace."
+              : isFirstUserSetup
+                ? "Setup your organisation."
+                : "Build momentum with your team."}
+          </h1>
+          <p>
+            {isLogin
+              ? "Plan clearly, collaborate simply, and keep every deadline visible."
+              : isFirstUserSetup
+                ? "Initialize the workspace, configure your organisation, and begin as Organisation Admin."
+                : `Join ${orgInfo.name || "ProjectPulse"} to collaborate on active initiatives.`}
           </p>
+          <div className="auth-quote">
+            <CheckCircle2 size={18} />
+            <span>Everything your team needs to move forward.</span>
+          </div>
         </div>
+      </div>
+      <div className="auth-panel">
+        <div className="auth-card">
+          <div className="auth-heading">
+            <h2>
+              {isLogin
+                ? "Sign in"
+                : isFirstUserSetup
+                  ? "Create organisation"
+                  : "Create your account"}
+            </h2>
+            <p>
+              {isLogin
+                ? "Enter your credentials to continue."
+                : isFirstUserSetup
+                  ? "First user onboarding: create workspace & organisation admin."
+                  : "Join your team workspace in seconds."}
+            </p>
+          </div>
 
-        {/* Card */}
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 14,
-            padding: 28,
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
-          }}
-        >
-          {error && (
+          {registeredNotice && !error && (
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                background: '#fef2f2',
-                border: '1px solid #fee2e2',
-                color: '#991b1b',
-                padding: '10px 12px',
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                color: "#065f46",
+                padding: "10px 14px",
                 borderRadius: 8,
-                fontSize: 12,
-                marginBottom: 16,
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 14,
               }}
             >
-              <AlertCircle size={16} />
-              <span>{error}</span>
+              <CheckCircle2 size={16} />
+              <span>
+                Account created successfully! Please sign in with your
+                credentials.
+              </span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label">Full name</label>
-              <input
-                name="name"
-                type="text"
-                className="form-input"
-                placeholder="Your full name"
-                value={form.name}
-                onChange={update}
-                required
-              />
+          {isFirstUserSetup && (
+            <div
+              style={{
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                color: "#1e40af",
+                padding: "10px 14px",
+                borderRadius: 8,
+                fontSize: 13,
+                marginBottom: 14,
+              }}
+            >
+              <strong>First-Time Setup:</strong> You are the first user for this
+              instance and will become the{" "}
+              <strong>Organisation Admin</strong>.
             </div>
+          )}
 
-            <div className="form-group">
-              <label className="form-label">Work email</label>
-              <input
-                name="email"
-                type="email"
-                className="form-input"
-                placeholder="name@company.com"
-                value={form.email}
-                onChange={update}
-                required
-              />
-            </div>
+          {!isRegisterReady && !isLogin ? (
+            <p style={{ color: "#64748b", fontSize: 13 }}>Loading setup…</p>
+          ) : (
+            <form onSubmit={submit}>
+              {isFirstUserSetup && (
+                <label>
+                  Organisation / Workspace name
+                  <input
+                    name="organisationName"
+                    value={form.organisationName}
+                    onChange={update}
+                    placeholder="ProjectPulse Workspace"
+                    required
+                  />
+                </label>
+              )}
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Password</label>
+              {!isLogin && (
+                <label>
+                  Full name
+                  <input
+                    name="name"
+                    value={form.name}
+                    onChange={update}
+                    placeholder="Your full name"
+                    autoComplete="name"
+                    required
+                  />
+                </label>
+              )}
+
+              <label>
+                Email address
+                <input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={update}
+                  placeholder="you@company.com"
+                  autoComplete="email"
+                  required
+                />
+              </label>
+
+              <label>
+                Password
                 <input
                   name="password"
                   type="password"
-                  className="form-input"
-                  placeholder="Min 6 characters"
                   value={form.password}
                   onChange={update}
+                  placeholder="At least 6 characters"
+                  autoComplete={isLogin ? "current-password" : "new-password"}
                   required
                 />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Confirm password</label>
-                <input
-                  name="confirmPassword"
-                  type="password"
-                  className="form-input"
-                  placeholder="Repeat password"
-                  value={form.confirmPassword}
-                  onChange={update}
-                  required
-                />
-              </div>
-            </div>
+              </label>
 
-            <div className="form-group">
-              <label className="form-label">Workspace role</label>
-              <select name="role" className="form-select" value={form.role} onChange={update}>
-                <option value="MEMBER">Member (Developer / Contributor)</option>
-                <option value="PROJECT_MANAGER">Project Manager (Admin / Lead)</option>
-              </select>
-            </div>
+              {!isLogin && (
+                <>
+                  <label>
+                    Confirm password
+                    <input
+                      name="confirmPassword"
+                      type="password"
+                      value={form.confirmPassword}
+                      onChange={update}
+                      placeholder="Repeat your password"
+                      autoComplete="new-password"
+                      required
+                    />
+                  </label>
 
-            <Button type="submit" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
-              {loading ? 'Creating account...' : 'Create account'}
-            </Button>
-          </form>
+                  {adminExists ? (
+                    <>
+                      <label>
+                        Workspace role
+                        <select name="role" value={form.role} onChange={update}>
+                          {registrationRoles.map((entry) => (
+                            <option key={entry.role} value={entry.role}>
+                              {entry.name || ROLE_LABELS[entry.role] || entry.role}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "10px 12px",
+                          fontSize: 12,
+                          color: "#475569",
+                          marginBottom: 14,
+                        }}
+                      >
+                        <strong>
+                          {ROLE_LABELS[form.role] || form.role}:
+                        </strong>{" "}
+                        {ROLE_DESCRIPTIONS[form.role]}
+                        <div
+                          style={{
+                            marginTop: 4,
+                            color: "#94a3b8",
+                            fontSize: 11,
+                          }}
+                        >
+                          Organisation Admin accounts are assigned by workspace
+                          administrators.
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    adminExists === false && (
+                      <div
+                        style={{
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: "10px 12px",
+                          fontSize: 12,
+                          color: "#475569",
+                          marginBottom: 14,
+                        }}
+                      >
+                        <strong>Role: Organisation Admin</strong>
+                        <p
+                          style={{
+                            margin: "4px 0 0",
+                            fontSize: 11,
+                            color: "#64748b",
+                          }}
+                        >
+                          {ROLE_DESCRIPTIONS.ORGANISATION_ADMIN}
+                        </p>
+                      </div>
+                    )
+                  )}
+                </>
+              )}
+
+              {error && (
+                <div className="form-error">
+                  <XCircle size={16} />
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" disabled={submitting}>
+                {submitting
+                  ? "Please wait..."
+                  : isLogin
+                    ? "Sign in"
+                    : isFirstUserSetup
+                      ? "Create workspace & admin"
+                      : "Create account"}{" "}
+                <ArrowRight size={16} />
+              </Button>
+            </form>
+          )}
+
+          <p className="auth-switch">
+            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+            <Link to={isLogin ? "/register" : "/login"}>
+              {isLogin ? "Create one" : "Sign in"}
+            </Link>
+          </p>
         </div>
-
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#64748b', marginTop: 20 }}>
-          Already have an account?{' '}
-          <Link to="/login" style={{ color: '#4f46e5', fontWeight: 600 }}>
-            Sign in
-          </Link>
-        </p>
       </div>
     </div>
-  )
+  );
 }

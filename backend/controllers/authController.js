@@ -100,11 +100,22 @@ export async function register(req, res, next) {
       await user.save()
 
       setAuthCookie(res, createToken(user._id.toString()))
+      const safeUser = getSafeUser(user)
+      safeUser.organisation = { id: organisation._id.toString(), name: organisation.name }
       res.status(201).json({
         success: true,
-        user: getSafeUser(user),
+        user: safeUser,
         organisation: { id: organisation._id, name: organisation.name },
         message: 'Workspace created. You are now the Organisation Admin.',
+      })
+      return
+    }
+
+    if (!organisation) {
+      res.status(503).json({
+        success: false,
+        message:
+          'This workspace has not been set up yet. The first user must create the organisation.',
       })
       return
     }
@@ -173,9 +184,13 @@ export async function getRoles(req, res) {
   try {
     const adminExists = await User.exists({ role: 'ORGANISATION_ADMIN' })
     const organisation = await Organisation.findOne().select('name domain')
+    const registrationRoles = adminExists
+      ? ROLES_METADATA.filter((entry) => entry.role !== 'ORGANISATION_ADMIN')
+      : []
     res.json({
       success: true,
       roles: ROLES_METADATA,
+      registrationRoles,
       adminExists: !!adminExists,
       organisation: organisation || { name: 'ProjectPulse Workspace' },
     })
@@ -183,6 +198,7 @@ export async function getRoles(req, res) {
     res.json({
       success: true,
       roles: ROLES_METADATA,
+      registrationRoles: ROLES_METADATA.filter((entry) => entry.role !== 'ORGANISATION_ADMIN'),
       adminExists: false,
       organisation: { name: 'ProjectPulse Workspace' },
     })
