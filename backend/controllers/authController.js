@@ -51,11 +51,19 @@ function getSafeUser(user) {
   }
 }
 
-function setAuthCookie(res, token) {
+function useCrossSiteCookie(req) {
+  return (
+    process.env.NODE_ENV === 'production' ||
+    req.headers['x-forwarded-proto'] === 'https'
+  )
+}
+
+function setAuthCookie(req, res, token) {
+  const crossSite = useCrossSiteCookie(req)
   res.cookie(authCookieName, token, {
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: crossSite ? 'none' : 'lax',
+    secure: crossSite,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   })
 }
@@ -139,7 +147,7 @@ export async function login(req, res, next) {
       return
     }
 
-    setAuthCookie(res, createToken(user._id.toString()))
+    setAuthCookie(req, res, createToken(user._id.toString()))
     res.json({ success: true, user: getSafeUser(user) })
   } catch (error) {
     next(error)
@@ -151,10 +159,11 @@ export async function getCurrentUser(req, res) {
 }
 
 export function logout(req, res) {
+  const crossSite = useCrossSiteCookie(req)
   res.clearCookie(authCookieName, {
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: crossSite ? 'none' : 'lax',
+    secure: crossSite,
   })
   res.json({ success: true, message: 'You have been logged out.' })
 }

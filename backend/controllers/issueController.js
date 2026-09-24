@@ -26,7 +26,6 @@ function canManage(project, user) {
 
 function canView(project, user) {
   if (user.role === 'ORGANISATION_ADMIN') return true
-  if (project.status === 'ACTIVE') return true
   if (canManage(project, user)) return true
   const userId = user._id.toString()
   if (project.members && project.members.some((m) => m.toString() === userId)) return true
@@ -126,7 +125,6 @@ export async function listIssues(req, res, next) {
           { teamLead: req.user._id },
           { members: req.user._id },
           { stakeholders: req.user._id },
-          { status: 'ACTIVE' },
         ],
       }).select('_id')
       filter.project = { $in: projects.map((p) => p._id) }

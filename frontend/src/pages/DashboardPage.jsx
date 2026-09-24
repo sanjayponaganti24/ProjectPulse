@@ -146,7 +146,11 @@ export default function DashboardPage() {
           api.get("/tasks"),
           api.get("/issues"),
         ]);
-      setProjects(projectsResponse.data.projects || []);
+      setProjects(
+        projectsResponse.data.myProjects ||
+          projectsResponse.data.projects ||
+          [],
+      );
       setTasks(tasksResponse.data.tasks || []);
       setIssues(issuesResponse.data.issues || []);
     } catch (requestError) {

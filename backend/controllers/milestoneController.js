@@ -15,7 +15,6 @@ function isAuthorizedPMOrAdmin(project, user) {
 
 function canView(project, user) {
   if (user.role === 'ORGANISATION_ADMIN') return true
-  if (project.status === 'ACTIVE') return true
   if (isAuthorizedPMOrAdmin(project, user)) return true
   const userId = user._id.toString()
   if (project.teamLead && project.teamLead.toString() === userId) return true

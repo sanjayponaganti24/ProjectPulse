@@ -4,6 +4,7 @@ import Task from '../models/Task.js'
 import User from '../models/User.js'
 
 const userFields = 'name email role avatar'
+const projectLeadFields = 'name role avatar'
 
 function validId(value) {
   return mongoose.Types.ObjectId.isValid(value)
@@ -37,11 +38,8 @@ function canManage(project, user) {
   return managerId === user._id.toString()
 }
 
-function canView(project, user) {
+function isParticipant(project, user) {
   if (user.role === 'ORGANISATION_ADMIN') return true
-  if (project.status === 'ACTIVE') return true
-  if (canManage(project, user)) return true
-
   const userId = user._id.toString()
   const teamLeadId = (project.teamLead?._id || project.teamLead)?.toString()
   if (teamLeadId === userId) return true
@@ -56,6 +54,27 @@ function canView(project, user) {
   return false
 }
 
+function participantFilter(user) {
+  return {
+    $or: [
+      { manager: user._id },
+      { teamLead: user._id },
+      { members: user._id },
+      { stakeholders: user._id },
+    ],
+  }
+}
+
+function applyProjectFilters(filter, query) {
+  const clauses = [filter]
+  if (query.status) clauses.push({ status: query.status })
+  if (query.search) {
+    const searchRegex = { $regex: query.search, $options: 'i' }
+    clauses.push({ $or: [{ name: searchRegex }, { description: searchRegex }] })
+  }
+  return clauses.length === 1 ? filter : { $and: clauses }
+}
+
 async function withProgress(project) {
   const [total, completed] = await Promise.all([
     Task.countDocuments({ project: project._id }),
@@ -66,41 +85,48 @@ async function withProgress(project) {
 
 export async function listProjects(req, res, next) {
   try {
-    let filter = {}
-    if (req.user.role !== 'ORGANISATION_ADMIN') {
-      const participantAccess = [
-        { manager: req.user._id },
-        { teamLead: req.user._id },
-        { members: req.user._id },
-        { stakeholders: req.user._id },
-      ]
-      filter = req.query.status
-        ? { $and: [{ $or: participantAccess }, { status: req.query.status }] }
-        : { $or: [...participantAccess, { status: 'ACTIVE' }] }
-    }
-
-    if (req.query.status && req.user.role === 'ORGANISATION_ADMIN') {
-      filter.status = req.query.status
-    }
-    if (req.query.search) {
-      const searchRegex = { $regex: req.query.search, $options: 'i' }
-      filter = {
-        $and: [
-          filter,
-          { $or: [{ name: searchRegex }, { description: searchRegex }] },
-        ],
-      }
-    }
-
-    const projects = await Project.find(filter)
+    const isAdmin = req.user.role === 'ORGANISATION_ADMIN'
+    const myFilter = applyProjectFilters(isAdmin ? {} : participantFilter(req.user), req.query)
+    const myProjects = await Project.find(myFilter)
       .populate('manager', userFields)
       .populate('teamLead', userFields)
       .populate('members', userFields)
       .populate('stakeholders', userFields)
       .sort({ createdAt: -1 })
 
-    const projectsWithProgress = await Promise.all(projects.map(withProgress))
-    res.json({ success: true, projects: projectsWithProgress })
+    if (isAdmin) {
+      const projects = await Promise.all(myProjects.map(withProgress))
+      res.json({ success: true, projects, myProjects: projects, otherProjects: [] })
+      return
+    }
+
+    const myProjectIds = myProjects.map((project) => project._id)
+    const otherProjects = await Project.find(
+      applyProjectFilters({ _id: { $nin: myProjectIds } }, req.query),
+    )
+      .populate('manager', projectLeadFields)
+      .populate('teamLead', projectLeadFields)
+      .sort({ createdAt: -1 })
+
+    const [myProjectsWithProgress, otherProjectsWithProgress] = await Promise.all([
+      Promise.all(myProjects.map(withProgress)),
+      Promise.all(
+        otherProjects.map(async (project) => {
+          const limitedProject = await withProgress(project)
+          delete limitedProject.members
+          delete limitedProject.stakeholders
+          delete limitedProject.progress
+          return limitedProject
+        }),
+      ),
+    ])
+
+    res.json({
+      success: true,
+      projects: [...myProjectsWithProgress, ...otherProjectsWithProgress],
+      myProjects: myProjectsWithProgress,
+      otherProjects: otherProjectsWithProgress,
+    })
   } catch (error) {
     next(error)
   }
@@ -110,11 +136,13 @@ export async function getProject(req, res, next) {
   try {
     const project = await findProject(req, res)
     if (!project) return
-    if (!canView(project, req.user)) {
-      res.status(403).json({ success: false, message: 'You do not have access to this project.' })
-      return
+    const projectData = await withProgress(project)
+    if (!isParticipant(project, req.user)) {
+      delete projectData.members
+      delete projectData.stakeholders
+      delete projectData.progress
     }
-    res.json({ success: true, project: await withProgress(project) })
+    res.json({ success: true, project: projectData, readOnly: !isParticipant(project, req.user) })
   } catch (error) {
     next(error)
   }

@@ -1874,6 +1874,10 @@ textarea:focus-visible {
   gap: 18px;
 }
 
+.project-section + .project-section {
+  margin-top: 28px;
+}
+
 .project-card {
   display: flex;
   flex-direction: column;

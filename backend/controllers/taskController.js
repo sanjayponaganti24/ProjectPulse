@@ -16,7 +16,6 @@ function validId(value) {
 
 function canView(project, user) {
   if (user.role === 'ORGANISATION_ADMIN') return true
-  if (project.status === 'ACTIVE') return true
   const userId = user._id.toString()
   if (project.manager && project.manager.toString() === userId) return true
   if (project.teamLead && project.teamLead.toString() === userId) return true
@@ -115,7 +114,6 @@ async function projectIdsForUser(user) {
       { teamLead: user._id },
       { members: user._id },
       { stakeholders: user._id },
-      { status: 'ACTIVE' },
     ],
   }
   const projects = await Project.find(filter).select('_id')

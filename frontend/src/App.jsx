@@ -81,7 +81,8 @@ function ProjectError({ message }) {
 
 function ProjectsPage() {
   const { user } = useAuth();
-  const [items, setItems] = useState([]);
+  const [myProjects, setMyProjects] = useState([]);
+  const [otherProjects, setOtherProjects] = useState([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
@@ -94,7 +95,8 @@ function ProjectsPage() {
       const response = await api.get("/projects", {
         params: { search: query || undefined, status: status || undefined },
       });
-      setItems(response.data.projects || []);
+      setMyProjects(response.data.myProjects || response.data.projects || []);
+      setOtherProjects(response.data.otherProjects || []);
     } catch (requestError) {
       setError(
         requestError.response?.data?.message || "Unable to load projects.",
@@ -112,7 +114,9 @@ function ProjectsPage() {
     if (!window.confirm("Delete this project? This cannot be undone.")) return;
     try {
       await api.delete(`/projects/${id}`);
-      setItems((current) => current.filter((project) => project._id !== id));
+      setMyProjects((current) =>
+        current.filter((project) => project._id !== id),
+      );
     } catch (requestError) {
       setError(
         requestError.response?.data?.message || "Unable to delete project.",
@@ -129,6 +133,83 @@ function ProjectsPage() {
     (user?.role === "PROJECT_MANAGER" &&
       ((p.manager?._id || p.manager) === user?.id ||
         (p.manager?._id || p.manager) === user?._id));
+
+  function renderProjectCard(project, readOnly = false) {
+    return (
+      <Card className="project-card" key={project._id}>
+        <div className="project-card-top">
+          <div className="project-avatar large">{project.name[0]}</div>
+          <div>
+            {readOnly ? (
+              <Badge tone="planned">Read only</Badge>
+            ) : (
+              <>
+                {canManageProject(project) && (
+                  <Link
+                    className="more-button"
+                    to={`/projects/${project._id}/edit`}
+                  >
+                    <MoreHorizontal size={18} />
+                  </Link>
+                )}
+                {canManageProject(project) && (
+                  <button
+                    className="more-button"
+                    onClick={() => deleteProject(project._id)}
+                    title="Delete project"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+        <Badge tone={project.status}>{project.status}</Badge>
+        <h2>
+          <Link to={`/projects/${project._id}`}>{project.name}</Link>
+        </h2>
+        <p>{project.description || "No description provided."}</p>
+        <div className="project-progress">
+          <div>
+            <span>Progress</span>
+            <strong>{project.progress ?? 0}%</strong>
+          </div>
+          <ProgressBar
+            value={
+              project.progress ??
+              (project.status === "COMPLETED"
+                ? 100
+                : project.status === "ACTIVE"
+                  ? 50
+                  : 0)
+            }
+          />
+        </div>
+        <div className="project-meta">
+          {readOnly ? (
+            <>
+              <span>Manager: {project.manager?.name || "Unassigned"}</span>
+              <span>Team Lead: {project.teamLead?.name || "Unassigned"}</span>
+            </>
+          ) : (
+            <span>
+              <Users size={15} />
+              {project.members?.length || 0} members
+            </span>
+          )}
+          <span>
+            <CalendarDays size={15} />
+            {project.deadline
+              ? new Date(project.deadline).toLocaleDateString()
+              : "No deadline"}
+          </span>
+        </div>
+      </Card>
+    );
+  }
+
+  const visibleProjects = [...myProjects, ...otherProjects];
 
   return (
     <>
@@ -170,7 +251,7 @@ function ProjectsPage() {
           <div className="spinner" />
           Loading projects...
         </div>
-      ) : items.length === 0 ? (
+      ) : visibleProjects.length === 0 ? (
         <Card className="report-chart-card">
           <EmptyState
             title="No projects yet"
@@ -185,67 +266,32 @@ function ProjectsPage() {
           />
         </Card>
       ) : (
-        <div className="project-card-grid">
-          {items.map((project) => (
-            <Card className="project-card" key={project._id}>
-              <div className="project-card-top">
-                <div className="project-avatar large">{project.name[0]}</div>
-                <div>
-                  {canManageProject(project) && (
-                    <Link
-                      className="more-button"
-                      to={`/projects/${project._id}/edit`}
-                    >
-                      <MoreHorizontal size={18} />
-                    </Link>
-                  )}
-                  {canManageProject(project) && (
-                    <button
-                      className="more-button"
-                      onClick={() => deleteProject(project._id)}
-                      title="Delete project"
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
+        <>
+          {myProjects.length > 0 && (
+            <section className="project-section">
+              <div className="section-heading">
+                <h2>My Projects</h2>
+                <span>{myProjects.length}</span>
               </div>
-              <Badge tone={project.status}>{project.status}</Badge>
-              <h2>
-                <Link to={`/projects/${project._id}`}>{project.name}</Link>
-              </h2>
-              <p>{project.description || "No description provided."}</p>
-              <div className="project-progress">
-                <div>
-                  <span>Progress</span>
-                  <strong>{project.progress ?? 0}%</strong>
-                </div>
-                <ProgressBar
-                  value={
-                    project.progress ??
-                    (project.status === "COMPLETED"
-                      ? 100
-                      : project.status === "ACTIVE"
-                        ? 50
-                        : 0)
-                  }
-                />
+              <div className="project-card-grid">
+                {myProjects.map((project) => renderProjectCard(project))}
               </div>
-              <div className="project-meta">
-                <span>
-                  <Users size={15} />
-                  {project.members?.length || 0} members
-                </span>
-                <span>
-                  <CalendarDays size={15} />
-                  {project.deadline
-                    ? new Date(project.deadline).toLocaleDateString()
-                    : "No deadline"}
-                </span>
+            </section>
+          )}
+          {otherProjects.length > 0 && (
+            <section className="project-section">
+              <div className="section-heading">
+                <h2>Other Projects</h2>
+                <span>Read only</span>
               </div>
-            </Card>
-          ))}
-        </div>
+              <div className="project-card-grid">
+                {otherProjects.map((project) =>
+                  renderProjectCard(project, true),
+                )}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </>
   );
@@ -490,7 +536,10 @@ function TaskForm({ edit = false }) {
       edit ? api.get(`/tasks/${id}`) : Promise.resolve(null),
     ])
       .then(([projectsResponse, taskResponse]) => {
-        const projects = projectsResponse.data.projects || [];
+        const projects =
+          projectsResponse.data.myProjects ||
+          projectsResponse.data.projects ||
+          [];
         setProjectsList(projects);
         if (taskResponse) {
           const task = taskResponse.data.task;
@@ -1212,7 +1261,11 @@ function IssueForm({ edit = false }) {
       edit ? api.get(`/issues/${id}`) : Promise.resolve(null),
     ])
       .then(([projectsResponse, tasksResponse, issueResponse]) => {
-        setProjectsList(projectsResponse.data.projects || []);
+        setProjectsList(
+          projectsResponse.data.myProjects ||
+            projectsResponse.data.projects ||
+            [],
+        );
         setTasksList(tasksResponse.data.tasks || []);
         if (issueResponse) {
           const issue = issueResponse.data.issue;
@@ -1762,13 +1815,6 @@ function TeamPage() {
   const [inviting, setInviting] = useState(false);
 
   const isOrgAdmin = user?.role === "ORGANISATION_ADMIN";
-  const memberCandidates = usersList.filter(
-    (candidate) =>
-      candidate.role === "MEMBER" || candidate.role === "TEAM_LEAD",
-  );
-  const stakeholderCandidates = usersList.filter(
-    (candidate) => candidate.role === "STAKEHOLDER",
-  );
 
   async function loadTeam() {
     setLoading(true);
@@ -1782,7 +1828,11 @@ function TeamPage() {
         ]);
       setMembers(usersResponse.data.users || []);
       setTasks(tasksResponse.data.tasks || []);
-      setProjects(projectsResponse.data.projects || []);
+      setProjects(
+        projectsResponse.data.myProjects ||
+          projectsResponse.data.projects ||
+          [],
+      );
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Unable to load team.");
     } finally {
@@ -2234,6 +2284,13 @@ function ProjectForm({ edit = false }) {
   const [error, setError] = useState("");
 
   const isOrgAdmin = user?.role === "ORGANISATION_ADMIN";
+  const memberCandidates = usersList.filter(
+    (candidate) =>
+      candidate.role === "MEMBER" || candidate.role === "TEAM_LEAD",
+  );
+  const stakeholderCandidates = usersList.filter(
+    (candidate) => candidate.role === "STAKEHOLDER",
+  );
 
   useEffect(() => {
     Promise.all([
@@ -2738,6 +2795,7 @@ function ProjectDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const [project, setProject] = useState(null);
+  const [readOnly, setReadOnly] = useState(false);
   const [milestones, setMilestones] = useState([]);
   const [email, setEmail] = useState("");
   const [roleInProject, setRoleInProject] = useState("MEMBER");
@@ -2748,7 +2806,10 @@ function ProjectDetailPage() {
   useEffect(() => {
     api
       .get(`/projects/${id}`)
-      .then(({ data }) => setProject(data.project))
+      .then(({ data }) => {
+        setProject(data.project);
+        setReadOnly(Boolean(data.readOnly));
+      })
       .catch((requestError) =>
         setError(
           requestError.response?.data?.message || "Unable to load project.",
@@ -2758,7 +2819,11 @@ function ProjectDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !project || readOnly) {
+      setMilestones([]);
+      setMilestonesLoading(false);
+      return;
+    }
     setMilestonesLoading(true);
     api
       .get(`/projects/${id}/milestones`)
@@ -2769,7 +2834,7 @@ function ProjectDetailPage() {
         ),
       )
       .finally(() => setMilestonesLoading(false));
-  }, [id]);
+  }, [id, project, readOnly]);
 
   async function addMember(event) {
     event.preventDefault();

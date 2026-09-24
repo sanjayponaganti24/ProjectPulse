@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import User from '../models/User.js'
+import Project from '../models/Project.js'
 import { protect } from '../middleware/authMiddleware.js'
 import { authorizeRoles } from '../middleware/roleMiddleware.js'
 
@@ -13,6 +14,33 @@ const validRoles = [
   'MEMBER',
   'STAKEHOLDER',
 ]
+
+async function relevantUserIds(user) {
+  if (user.role === 'ORGANISATION_ADMIN') return null
+
+  const projects = await Project.find({
+    $or: [
+      { manager: user._id },
+      { teamLead: user._id },
+      { members: user._id },
+      { stakeholders: user._id },
+    ],
+  }).select('manager teamLead members stakeholders')
+
+  const ids = new Set([user._id.toString()])
+  projects.forEach((project) => {
+    const participantIds = [
+      project.manager,
+      project.teamLead,
+      ...project.members,
+      ...project.stakeholders,
+    ]
+    participantIds
+      .filter(Boolean)
+      .forEach((id) => ids.add(id.toString()))
+  })
+  return [...ids]
+}
 
 function validateRequest(req, res, next) {
   const errors = validationResult(req)
@@ -64,7 +92,9 @@ router.patch(
 // List all workspace users
 router.get('/', async (req, res, next) => {
   try {
-    const users = await User.find({}).select(userFields).sort({ name: 1 })
+    const userIds = await relevantUserIds(req.user)
+    const filter = userIds ? { _id: { $in: userIds } } : {}
+    const users = await User.find(filter).select(userFields).sort({ name: 1 })
     res.json({ success: true, users })
   } catch (error) {
     next(error)
@@ -74,6 +104,11 @@ router.get('/', async (req, res, next) => {
 // Get single user
 router.get('/:id', async (req, res, next) => {
   try {
+    const userIds = await relevantUserIds(req.user)
+    if (userIds && !userIds.includes(req.params.id)) {
+      res.status(403).json({ success: false, message: 'You do not have access to this user.' })
+      return
+    }
     const user = await User.findById(req.params.id).select(userFields)
     if (!user) {
       res.status(404).json({ success: false, message: 'User not found.' })
