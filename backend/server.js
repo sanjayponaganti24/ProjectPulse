@@ -36,8 +36,7 @@ const allowedOrigins = new Set(
 const isVercelOrigin = (origin) => {
   try {
     const url = new URL(origin)
-    return process.env.NODE_ENV === 'production' &&
-      url.protocol === 'https:' &&
+    return url.protocol === 'https:' &&
       url.hostname.endsWith('.vercel.app')
   } catch {
     return false
@@ -51,7 +50,7 @@ app.use(
         callback(null, origin || true)
         return
       }
-      callback(new Error('Origin is not allowed by CORS.'))
+      callback(null, false)
     },
     credentials: true,
   }),
