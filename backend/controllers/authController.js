@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import mongoose from 'mongoose'
 import User from '../models/User.js'
 import Organisation from '../models/Organisation.js'
 
@@ -71,7 +72,7 @@ function setAuthCookie(req, res, token) {
 
 export async function register(req, res, next) {
   try {
-    const { name, email, password, role } = req.body
+    const { name, email, password, role, organisation: requestedOrganisation } = req.body
 
     const normalizedEmail = email.toLowerCase().trim()
 
@@ -103,33 +104,32 @@ export async function register(req, res, next) {
       return
     }
 
-    const organisation =
-      (await Organisation.findById(defaultOrganisationId)) ||
-      (await Organisation.findOne().sort({ createdAt: 1 }))
+    const organisationId = requestedOrganisation || defaultOrganisationId
 
-    if (!organisation) {
-      res.status(503).json({
+    if (!mongoose.Types.ObjectId.isValid(organisationId)) {
+      res.status(400).json({
         success: false,
-        message:
-          'The ProjectPulse workspace has not been configured yet. Please contact the administrator.',
+        message: 'A valid workspace ID is required.',
       })
       return
     }
+
+    const organisation = await Organisation.findById(organisationId).select('name')
 
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
       password,
       role,
-      organisation: organisation._id,
+      organisation: organisationId,
     })
 
     res.status(201).json({
       success: true,
       user: getSafeUser(user),
       organisation: {
-        id: organisation._id,
-        name: organisation.name,
+        id: organisationId,
+        name: organisation?.name || 'ProjectPulse Workspace',
       },
       message: 'Account created successfully. Please log in.',
     })
