@@ -3,6 +3,7 @@ import User from '../models/User.js'
 import Organisation from '../models/Organisation.js'
 
 const authCookieName = 'projectpulse_token'
+const defaultOrganisationId = '6ab3dfbbd05c150062b230b2'
 
 export const ROLES_METADATA = [
   {
@@ -102,9 +103,9 @@ export async function register(req, res, next) {
       return
     }
 
-    const organisation = await Organisation.findOne().sort({
-      createdAt: 1,
-    })
+    const organisation =
+      (await Organisation.findById(defaultOrganisationId)) ||
+      (await Organisation.findOne().sort({ createdAt: 1 }))
 
     if (!organisation) {
       res.status(503).json({
