@@ -6,7 +6,7 @@ import Organisation from '../models/Organisation.js'
 const authCookieName = 'projectpulse_token'
 const defaultOrganisationId = '6ab3dfbbd05c150062b230b2'
 
-export const ROLES_METADATA = [
+const ROLES_METADATA = [
   {
     role: 'ORGANISATION_ADMIN',
     name: 'Organisation Admin',
