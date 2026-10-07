@@ -16,10 +16,34 @@ export async function protect(req, res, next) {
       res.status(401).json({ success: false, message: 'Your session is no longer valid.' })
       return
     }
-
+      
     req.user = user
     next()
   } catch (error) {
     res.status(401).json({ success: false, message: 'Your session is no longer valid. Please sign in again.' })
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

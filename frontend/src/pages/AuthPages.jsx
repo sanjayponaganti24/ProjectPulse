@@ -18,7 +18,6 @@ const DEFAULT_REGISTRATION_ROLES = REGISTRATION_ROLES.map((role) => ({
   name: ROLE_LABELS[role] || role,
 }));
 
-const ROLE_DESCRIPTIONS = {
   PROJECT_MANAGER:
     "Plan projects, manage milestones, sprints, assignments, and reports.",
   TEAM_LEAD:
@@ -37,6 +36,7 @@ export function AuthPage({ mode }) {
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
+const ROLE_DESCRIPTIONS = {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [form, setForm] = useState({
