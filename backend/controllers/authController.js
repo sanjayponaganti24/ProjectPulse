@@ -34,6 +34,9 @@ export const ROLES_METADATA = [
   },
 ]
 
+// Map the missing variable name to the metadata array so the frontend stops throwing an error
+export const ROLE_DESCRIPTIONS = ROLES_METADATA;
+
 function createToken(userId) {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET is not configured. Add it to server/.env.')
@@ -194,4 +197,5 @@ export async function getRoles(req, res) {
   }
 }
 
-export { authCookieName, createToken, getSafeUser }
+export { authCookieName, createToken, getSafeUser, ROLE_DESCRIPTIONS }
+
